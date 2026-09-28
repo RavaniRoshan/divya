@@ -12,3 +12,7 @@ build/
 *.bin
 *.gguf
 data/cache/
+# Per-run traces and the local store are runtime state, not source. One example trace is kept
+# deliberately at docs/example-trace.json so the audit format is visible without running anything.
+data/traces/
+data/store/
