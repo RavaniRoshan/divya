@@ -122,13 +122,20 @@ Python 3.12.3, 2026-09-28.
 | 5 | System-2 warm latency, 3B | 3 calls | 0.56–0.91 s | D-009 |
 | 6 | System-2 warm latency, 4B | 3 calls | 42–64 s (1.3–2.2 s of it generation) | D-009 |
 | 7 | Laya `event_type`, synthetic clear | 30 | acc 0.733, macro-F1 0.724, ECE 0.216, AURC 0.117 | `research/results/armA_v2_calibrated.json` |
-| 8 | **Laya `event_type`, real NSE** | 24 | **acc 0.500, macro-F1 0.538, ECE 0.182, AURC 0.210** | `research/results/` |
+| 8 | Laya `event_type`, real NSE (exploratory) | 24 | acc 0.500, macro-F1 0.538, ECE 0.182, AURC 0.210 | **no artifact retained** — an early probe written to /tmp; superseded by row 12 (n=120). Quoted only as the first observation that synthetic was optimistic; every conclusion rests on row 12 |
 | 9 | Calibration, mid band (0.60–0.67) | 5 | 0.200 accuracy at 0.627 stated confidence | same |
 | 10 | Calibration, high band (0.93–1.00) | 7 | 1.000 accuracy at 0.995 stated confidence | same |
 | 11 | Checkpoint `choice:11+` temperature | — | **0.1006 — invalid, confidence uncalibrated** | `rl_agent_config.json` |
 | 12 | **A/B/C/D on real NSE** | 120 | **A 0.558 · B 0.000 · C 0.558 · D 0.508**; D abstains 75.8% | `evals/results/real_eval.json` |
 | 13 | D vs C, p95 latency | 120 | 40.4 s vs 19.0 s; arm A 4.7 s | same |
 | 14 | Per-class F1 (arm A) | 120 | credit_rating 0.94, leadership_change 0.88, m_and_a 0.67, other 0.43, **capital_action 0.00, regulatory_action 0.00** | same |
+| 15 | `other` precision (arm A / arm D) | 120 | **0.294** (TP 15, FP 36) / 0.342 (TP 14, FP 27) | same |
+| 16 | Paired A-vs-D: A right & D wrong / reverse | 120 | **6 / 0** — the loop fixed nothing and broke 6 | same |
+| 17 | Arm B output | 120 | **0 items produced an `event_type` answer; all 120 terminated `error`** | same |
+
+**Row 8 is the one number in this table with no artifact behind it**, and it is labelled as
+such. It is retained only because it was the first observation that synthetic evaluation was
+optimistic; every conclusion in this project rests on row 12.
 
 **Interpretation constraints, binding on every report:**
 

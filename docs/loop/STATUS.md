@@ -19,7 +19,7 @@ and two classes score F1 = 0.00 because of it.
   unusable on this hardware, and batching does not work here.
 - **The product works end to end**: `divya doctor`, `divya fetch`, `divya decide` (with the full
   terminal view and a reconstructable JSON trace), `divya show`, `divya protocol`.
-- 79 tests, ruff clean, mypy clean.
+- 84 tests, ruff clean, mypy clean.
 - Architecture spec (`docs/architecture/UNIFIED_MODEL.md`), README, Makefile, Dockerfile and
   compose written.
 
@@ -74,7 +74,7 @@ attractor for uncertainty: in **arm A** `capital_action` goes to `other`/`fundra
 FP 27). Both are bad; they are different numbers and are not interchangeable.
 
 **DECISION (D-012, D-013):** the default runtime is **arm A, System-1 alone**, in a named
-`system1_only` mode. The recurrent loop is retained, tested and traced as the control that made
+`--mode system1`. The recurrent loop is retained, tested and traced as the control that made
 this result possible, but it is not the product default. **Levels 3 and 4 are declined** — there
 is no measured value for a specialised System-2 to optimise when the untrained one contributes
 nothing and the loop it would drive is worse.
@@ -167,7 +167,7 @@ reconstructability, frozen-record immutability, and the freshness/provenance inv
 ## BENCHMARKS
 
 All in `research/results/` and `docs/loop/EVALS.md`, each with hardware, model version, n, and
-baseline. The A/B/C/D comparison is in progress.
+baseline. The A/B/C/D comparison is complete; see the table above and `evals/results/real_eval.json`.
 
 ## KNOWN FAILURES
 
@@ -184,7 +184,7 @@ baseline. The A/B/C/D comparison is in progress.
 - ~~Q3 (the central one): is D > C?~~ **Answered: no.** D 0.508 vs C 0.558, and A == C exactly.
 - Is Laya's miscalibration in the mid-confidence band fixable by a temperature refit on a
   Divya-specific dev set? Probably, and it is untested.
-- Does the loop *help* on the ambiguous stratum specifically? The stratified split will show.
+- ~~Does the loop help on the ambiguous stratum?~~ **Answered: no, and weakly.** A 0.500 / C 0.500 / D 0.500 — all three tied. n=6 is too small to distinguish anything, so this is a null result, not evidence of equivalence.
 - Would PDF extraction change any conclusion? Unknown and plausibly yes.
 
 ## NEXT HIGHEST-VALUE ACTION

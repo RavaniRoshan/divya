@@ -14,23 +14,43 @@ result, and to report it honestly. See [Status](#status) for what has actually b
 
 ## What it does
 
-```
-$ divya decide --text "HDFC Bank Limited has informed the Exchange about its quarterly
-financial results. Net profit after tax stood at Rs 18,209 crore as against Rs 16,510 crore
-in the corresponding quarter of the previous year, an increase of 10.3 per cent. The Board
-has recommended an interim dividend of Rs 12.50 per share." --trace
-```
-
-The reasoning model asks for the tier-1 decisions, escalates to the evidence-quality
-decisions, requests a numeric-presence check, and concludes — or abstains. Every step is in
-the output and in a JSON trace:
+One typed System-1 pass, no reasoning model, full provenance on screen — this is the default
+because the measurement says the reasoning layer does not earn its cost (see Status below):
 
 ```
+$ divya decide --text "Sun Pharma Limited has informed the Exchange that the Board has declared
+an interim dividend of Rs 12.50 per equity share for the quarter. The record date has been fixed
+as 14 August 2025." --trace
+```
+
+```
+[system-1] event_triage@2  decisions=['direction','event_type','is_material','materiality']
+           checkpoint=english  14831ms
+  event_type       {"type": "choice", "choice": "earnings_result", "confidence": 0.4319, ...}
+  is_material      {"type": "noul", "noul": 0.5114, "confidence": 0.5114, ...}
+  materiality      {"type": "score", "score": 1.9278, ...}
+  direction        {"type": "noul", "noul": 0.2437, "confidence": 0.7563, ...}
+
+[conclusion] event type: earnings_result; material: P=0.51; materiality level: 2
+[cost] s1 calls=1 s2 calls=0 turns=0 s1=14832ms s2=0ms
+```
+
+Note that last result: a *dividend* announcement classified `earnings_result` at 0.43
+confidence. That is the `other`-attractor failure described under Status, caught by the
+product's own default path, not by a test.
+
+The full recurrent architecture is still there, fully traced, under `--mode loop`:
+
+```
+$ divya decide --text "..." --mode loop --trace
 │ 0  ollama:qwen2.5-coder:3b   call_system1 ['event_type','is_material']     8905ms │
 │ 1  ollama:qwen2.5-coder:3b   call_system1 ['evidence_sufficiency', …]      1343ms │
 │ 2  ollama:qwen2.5-coder:3b   call_system1 ['numeric_disclosure_present']    1172ms │
 │ 3  ollama:qwen2.5-coder:3b   finish                                       1453ms │
 ```
+
+**It is not the default because it measured worse** — 0.508 vs 0.558 accuracy at 8.5× the
+latency. It is kept because it is the control that produced that result.
 
 ---
 
@@ -41,7 +61,7 @@ Requires Python ≥ 3.10. Tested on Python 3.12.
 ```bash
 git clone <this repo> && cd divya
 make setup          # venv + pinned dependencies
-make test           # 79 tests
+make test           # 84 tests
 make lint           # ruff + mypy
 make doctor         # what actually works in YOUR environment
 ```
@@ -61,7 +81,9 @@ divya decide --text "..." --trace
 
 #    Or run the full recurrent architecture, which measured worse but is fully traced:
 divya decide --text "..." --mode loop --trace
-divya decide --file evals/datasets/nse_announcements_v1.jsonl   # (or pipe one record)
+#    --file reads the WHOLE file as one document. Point it at a single record, not at a
+#    dataset -- feeding the 1,042-record dataset takes ~53 s and produces nonsense.
+divya decide --file data/one_announcement.txt
 
 # 3. Inspect any past run in full
 divya show <task-id> --full
@@ -170,7 +192,7 @@ H1 (loop helps) **rejected** · H2 (loop ≈ single-shot) **rejected** · H3 (lo
 predicts — ATLAS (arXiv 2510.15949) reports reflection-based feedback fails to give systematic
 gains.
 
-**So the default runtime is `system1_only`.** The recurrent loop is retained, tested and traced
+**So the default runtime is System-1 alone (`divya decide --mode system1`, the default).** The recurrent loop is retained, tested and traced
 under `--mode loop` because it is the control that produced this result, but it is not the
 product default. Levels 3 and 4 are declined and recorded as declined. See
 [DECISIONS D-012/D-013](docs/loop/DECISIONS.md) and
@@ -224,7 +246,7 @@ docs/loop/            project state — the external memory
 docs/architecture/    UNIFIED_MODEL.md
 research/             primary-source research and benchmark scripts
 evals/                dataset builders (synthetic + real) and results
-tests/                79 tests
+tests/                84 tests
 ```
 
 `AGENTS.md` is the operational contract for anyone working here, including the rules on claims,

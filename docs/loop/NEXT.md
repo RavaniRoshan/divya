@@ -10,7 +10,7 @@ Exactly one item is `IN_PROGRESS`. Everything else is a queue, not a promise.
 A and C are identical to the decimal on all four quality and calibration metrics; D is worse
 than C and abstains on 75.8% of events. H1 rejected, H2 rejected, H3 supported, H4 not supported.
 Recorded in `STATUS.md`, `DECISIONS.md` D-012/D-013, `UNIFICATION_EXPERIMENTS.md` E-009, and the
-README. The default runtime is now `system1_only`; Levels 3 and 4 are declined and recorded as
+README. The default runtime is now `--mode system1`; Levels 3 and 4 are declined and recorded as
 declined. No re-run with a different seed, subset, or model was attempted.
 
 ---
@@ -61,3 +61,25 @@ pre-registered strata — reported whatever it shows, including if it does not h
 - Every item ends with a command whose output was actually observed.
 - Anything that needs a human — a licence, a secret, a destructive action — goes to
   `docs/loop/BLOCKERS.md` and into the final report. Never worked around silently.
+
+---
+
+## Gaps the independent review named that are not yet queued
+
+Recorded so they are not lost, in severity order. `docs/loop/REVIEW.md` is the full review.
+
+- **No test coverage for `eval/harness.py`, `data/nse_taxonomy.py`, `data/nse.py`, `cli.py`,
+  `terminal/view.py`.** The module that produced the headline number and the module that
+  produced every label have zero tests. The single largest gap, and the one that would have
+  caught D1.
+- **No significance test for the paired A-vs-D claim.** "H3 SUPPORTED" is currently an
+  assertion over 6 net disagreements. A paired test (McNemar / exact binomial on the
+  discordant pairs) is cheap and would either confirm it or show it is within noise on n=120.
+  **Until that runs, the correct phrasing is "D measured worse; the gap is 6 items and has not
+  been tested for significance."**
+- **Arm C ran at `c_samples=1`,** so it is not yet a self-consistency arm — it is arm A plus a
+  no-op reasoning call. That is consistent with the result (A == C exactly) but it means the
+  "control for sample count" design in `EVALS.md` was specified and not exercised.
+- **A dev/test split and a recorded seed are mandated in `EVALS.md` and not implemented.** The
+  real dataset is a single unshuffled pool. For a comparison like this it did not change the
+  result, but the discipline is stated and not enforced.
