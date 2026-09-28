@@ -56,8 +56,11 @@ data sources respond, and the recorded licence verdict for each.
 # 1. See the live NSE feed and how it maps to the decision protocol
 divya fetch nse-announcements --days 7 --limit 300
 
-# 2. Decide a single event, with the full trace
+# 2. Decide a single event. Default mode is one typed System-1 pass (see the results above).
 divya decide --text "..." --trace
+
+#    Or run the full recurrent architecture, which measured worse but is fully traced:
+divya decide --text "..." --mode loop --trace
 divya decide --file evals/datasets/nse_announcements_v1.jsonl   # (or pipe one record)
 
 # 3. Inspect any past run in full
@@ -136,7 +139,41 @@ laya 0.3.21. Full method, n, and baseline in [docs/loop/EVALS.md](docs/loop/EVAL
 | Calibration at 0.93–1.0 (n=7) | 100% accuracy — well calibrated |
 | Batching lever | **1.10× at best** — torch already saturates all 16 threads |
 | System-2 warm latency | `qwen2.5-coder:3b` **0.56–0.91 s**; `qwen3:4b` **42–64 s** (memory thrash) |
-| A/B/C/D comparison | see `evals/results/real_eval.json` |
+| **A/B/C/D on real NSE data** (n=120) | see below — **the thesis was rejected** |
+
+### The headline result: the thesis is rejected on this data
+
+120 real NSE announcements, four arms paired in one process against one loaded checkpoint.
+
+| Arm | Accuracy | Macro-F1 | ECE | AURC | p95 | Prompt tok | Abstain |
+|---|---|---|---|---|---|---|---|
+| **A** System-1 alone | **0.558** | 0.436 | 0.096 | **0.240** | **4.7 s** | 0 | 0.0% |
+| **B** System-2 alone | 0.000 | 0.000 | 0.000 | 1.000 | 2.1 s | 2214 | 0.0% |
+| **C** System-2 → System-1 | **0.558** | 0.436 | 0.096 | **0.240** | 19.0 s | 1079 | 0.0% |
+| **D** recurrent loop | **0.508** | 0.371 | 0.080 | 0.260 | **40.4 s** | 4941 | **75.8%** |
+
+1. **A and C are identical to the decimal** on all four metrics. The reasoning layer contributes
+   *zero* while costing 4× the latency.
+2. **D is worse than C** — 0.508 vs 0.558 — at 8.5× the latency, 2.57 System-1 calls per event,
+   and a 75.8% abstention rate that scores the abstained events wrong.
+
+H1 (loop helps) **rejected** · H2 (loop ≈ single-shot) **rejected** · H3 (loop hurts)
+**supported** · H4 (calibration win) **not supported**. H3 is also what the external literature
+predicts — ATLAS (arXiv 2510.15949) reports reflection-based feedback fails to give systematic
+gains.
+
+**So the default runtime is `system1_only`.** The recurrent loop is retained, tested and traced
+under `--mode loop` because it is the control that produced this result, but it is not the
+product default. Levels 3 and 4 are declined and recorded as declined. See
+[DECISIONS D-012/D-013](docs/loop/DECISIONS.md) and
+[E-009](docs/research/UNIFICATION_EXPERIMENTS.md).
+
+**The next experiment the result points at.** The failure is not uniform: `credit_rating` scores
+F1 0.94 and `leadership_change` 0.88, but `capital_action` (n=13) and `regulatory_action` (n=17)
+score exactly **0.00**. The confusion matrix shows `other` acting as an attractor for uncertainty —
+`capital_action` goes to `other`/`fundraise` 13 of 13, and `other` itself has precision 0.29
+while absorbing 27 misclassifications. Removing the `other` option is the clearest experiment
+available.
 
 **Two negative results that changed the design:**
 
