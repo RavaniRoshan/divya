@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+# Traces are research artifacts and ARE committed; raw model dumps are not.
+*.safetensors
+*.bin
+*.gguf
+data/cache/

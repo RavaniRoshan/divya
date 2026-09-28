@@ -1,0 +1,758 @@
+{
+  "metrics": {
+    "task_id": "task_c43b74c333eb",
+    "termination": "finished",
+    "turns": 2,
+    "system1_calls": 2,
+    "system1_failures": 0,
+    "system2_calls": 3,
+    "system2_failures": 0,
+    "system1_latency_ms": 108681.2,
+    "system2_latency_ms": 0.2,
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "repairs": 0,
+    "max_system1_confidence": 0.8873,
+    "disagreements": 0,
+    "degraded": []
+  },
+  "state": {
+    "task_id": "task_c43b74c333eb",
+    "protocol_version": "0.1.0",
+    "domain": "corporate_actions",
+    "objective": "Classify this disclosure.",
+    "created_at": "2026-09-28T13:50:29.342+00:00",
+    "observations": [
+      {
+        "observation_id": "obs_b4ec0a745775",
+        "kind": "document",
+        "source_id": "nse:RAM-EARN",
+        "source_url": null,
+        "content": "Reliance Industries reported Q2 FY25 net profit of Rs 30,783 crore, up 12.5% YoY. The Board declared an interim dividend of Rs 6 per share.",
+        "retrieved_at": "2026-09-28T13:50:29.342+00:00",
+        "published_at": "2025-07-12T00:00:00Z",
+        "is_simulated": false,
+        "content_hash": "89411f6e3c0ad4a5"
+      }
+    ],
+    "evidence_refs": [],
+    "turn_index": 2,
+    "questions_asked": [
+      "direction",
+      "event_type",
+      "is_material",
+      "materiality",
+      "evidence_sufficiency",
+      "is_summary_only"
+    ],
+    "requested_decisions": [
+      "direction",
+      "event_type",
+      "is_material",
+      "materiality",
+      "evidence_sufficiency",
+      "is_summary_only"
+    ],
+    "system1_records": [
+      {
+        "record_id": "s1_6a4767704857",
+        "turn_index": 0,
+        "decision_names": [
+          "direction",
+          "event_type",
+          "is_material",
+          "materiality"
+        ],
+        "spec_name": "event_triage",
+        "spec_version": 1,
+        "protocol_version": "0.1.0",
+        "state_digest": "89411f6e3c0ad4a5",
+        "request": {
+          "spec": "event_triage",
+          "spec_version": 1,
+          "questions": {
+            "event_type": {
+              "type": "choice",
+              "instructions": "Choose the single category that best describes the main corporate event described in this document. If the document describes more than one event, choose the one that appears to be the subject of the filing rather than a passing mention.",
+              "criteria": {
+                "earnings_result": "Quarterly or annual financial results: revenue, profit, EPS, margins, or a comparison against prior periods or guidance.",
+                "board_dividend": "Declaration of a dividend, an interim dividend, or a change in dividend policy.",
+                "capital_action": "Share buyback, bonus issue, rights issue, stock split, or subdivision of shares.",
+                "fundraise": "Raising new capital: an issue of shares, warrants, debt, or an IPO for a subsidiary.",
+                "m_and_a": "Acquisition, disposal, merger, demerger, joint venture, or sale of a subsidiary.",
+                "leadership_change": "Appointment, resignation, or retirement of a director, promoter, or key executive.",
+                "auditor_change": "Change of statutory auditor, or an auditor resignation with a qualification.",
+                "regulatory_action": "Action by a regulator, exchange, or court: penalty, show-cause notice, trading ban, listing suspension, or a legal proceeding.",
+                "credit_rating": "Change in a credit rating, outlook, or a rating agency action.",
+                "board_meeting": "Notice of a board meeting to consider results or a specific agenda item, with no results or decision stated yet.",
+                "other": "Any other corporate disclosure that does not fit the categories above."
+              }
+            },
+            "is_material": {
+              "type": "noul",
+              "instructions": "Decide whether this disclosure is material to a company following the stock: whether it could plausibly change what an informed investor would do or expect. Routine filings that restate information already public, or that require no action, are not material.",
+              "criteria": {
+                "false": "Routine, procedural, or already-public information: meeting-date reminders, statutory compliance filings, resignations of non-executive directors with no stated reason, or a dividend at the previously declared rate.",
+                "true": "New financial results, a change in capital, an acquisition, a regulatory action against the company, a going-concern or audit qualification, or any disclosure with a stated financial consequence not already known."
+              },
+              "labels": {
+                "false": "not material",
+                "true": "material"
+              }
+            },
+            "materiality": {
+              "type": "score",
+              "instructions": "Grade how significant this event is for the company, from routine to severe. Consider financial size, whether it affects capital structure or control, and whether it is reversible.",
+              "criteria": [
+                "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+                "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+                "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+                "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+                "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+              ]
+            },
+            "direction": {
+              "type": "noul",
+              "instructions": "Decide the effect of this event on the value of the company's shares, judged on information available in this document alone. Judge the effect on the business, not on how the market might react to it.",
+              "criteria": {
+                "false": "Neutral or favourable: results at or above expectations, a dividend increase, an accretive acquisition, a credit upgrade, or an event with no clear effect either way.",
+                "true": "Adverse: results well below expectations, a loss, a dilution, a regulatory penalty, a credit downgrade, a qualified audit opinion, or an adverse leadership event."
+              },
+              "labels": {
+                "false": "neutral or favourable",
+                "true": "adverse"
+              }
+            }
+          },
+          "state_digest": "89411f6e3c0ad4a5",
+          "state_chars": 139
+        },
+        "raw_response": {
+          "model": "laya-rl-agent",
+          "answers": {
+            "event_type": {
+              "type": "choice",
+              "choice": "board_dividend",
+              "probabilities": {
+                "earnings_result": 0.0762,
+                "board_dividend": 0.9237,
+                "capital_action": 0.0,
+                "fundraise": 0.0,
+                "m_and_a": 0.0,
+                "leadership_change": 0.0,
+                "auditor_change": 0.0,
+                "regulatory_action": 0.0,
+                "credit_rating": 0.0,
+                "board_meeting": 0.0,
+                "other": 0.0001
+              },
+              "confidence": 0.8873,
+              "answer_confidence": 0.9237,
+              "action": {
+                "act_probability": 1.0
+              }
+            },
+            "is_material": {
+              "type": "noul",
+              "noul": 0.6433,
+              "confidence": 0.6433,
+              "answer_confidence": 0.6433,
+              "action": {
+                "act_probability": 1.0
+              }
+            },
+            "materiality": {
+              "type": "score",
+              "score": 2.2917,
+              "legend": {
+                "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+                "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+                "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+                "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+                "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+              },
+              "probabilities": {
+                "0": 0.0103,
+                "1": 0.0706,
+                "2": 0.5592,
+                "3": 0.3367,
+                "4": 0.0231
+              },
+              "confidence": 0.3705,
+              "answer_confidence": 0.5592,
+              "action": {
+                "act_probability": 1.0
+              }
+            },
+            "direction": {
+              "type": "noul",
+              "noul": 0.3034,
+              "confidence": 0.6966,
+              "answer_confidence": 0.6966,
+              "action": {
+                "act_probability": 1.0
+              }
+            }
+          },
+          "usage": {
+            "input_tokens": 802,
+            "output_tokens": 0
+          },
+          "routing": {
+            "model": "english",
+            "repo": "convaiinnovations/laya",
+            "reason": "English Latin text",
+            "detection": {
+              "script": "latin",
+              "script_profile": {
+                "latin": 1.0
+              },
+              "language": "en",
+              "is_english": true,
+              "language_undecided": false,
+              "diacritic_rate": 0.0,
+              "non_latin_fraction": 0.0,
+              "mixed_segment": null
+            },
+            "workflow": null
+          }
+        },
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "board_dividend",
+            "probabilities": {
+              "earnings_result": 0.0762,
+              "board_dividend": 0.9237,
+              "capital_action": 0.0,
+              "fundraise": 0.0,
+              "m_and_a": 0.0,
+              "leadership_change": 0.0,
+              "auditor_change": 0.0,
+              "regulatory_action": 0.0,
+              "credit_rating": 0.0,
+              "board_meeting": 0.0,
+              "other": 0.0001
+            },
+            "confidence": 0.8873,
+            "answer_confidence": 0.9237,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.6433,
+            "confidence": 0.6433,
+            "answer_confidence": 0.6433,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.2917,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0103,
+              "1": 0.0706,
+              "2": 0.5592,
+              "3": 0.3367,
+              "4": 0.0231
+            },
+            "confidence": 0.3705,
+            "answer_confidence": 0.5592,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.3034,
+            "confidence": 0.6966,
+            "answer_confidence": 0.6966,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "checkpoint": "english",
+        "latency_ms": 105916.33822400036,
+        "error": null,
+        "created_at": "2026-09-28T13:52:22.853+00:00"
+      },
+      {
+        "record_id": "s1_61033683d158",
+        "turn_index": 1,
+        "decision_names": [
+          "evidence_sufficiency",
+          "is_summary_only"
+        ],
+        "spec_name": "event_evidence",
+        "spec_version": 1,
+        "protocol_version": "0.1.0",
+        "state_digest": "89411f6e3c0ad4a5",
+        "request": {
+          "spec": "event_evidence",
+          "spec_version": 1,
+          "questions": {
+            "evidence_sufficiency": {
+              "type": "score",
+              "instructions": "Rate how completely this document states the facts needed to judge the event. A document that names the action but omits the figures, the counterparty, the effective date, or the conditions scores low.",
+              "criteria": [
+                "The document is a notice, an agenda, an excerpt, or a summary. The event is named but not described.",
+                "The event is described but at least one material fact is missing: a figure, a date, a counterparty, or a condition.",
+                "The event is described with its main facts, though some detail is deferred to an attachment or a follow-up filing.",
+                "The event is fully described with the figures, parties, dates, and conditions needed to judge it."
+              ]
+            },
+            "is_summary_only": {
+              "type": "noul",
+              "instructions": "Decide whether this document is a secondary account -- a news report, blog post, aggregator entry, or social media post describing a corporate event -- rather than the company's own disclosure or an exchange/regulator publication.",
+              "criteria": {
+                "false": "Primary: the company's own filing, an exchange or regulator publication, an audited financial statement, or a prepared investor presentation.",
+                "true": "Secondary: a news article, commentary, aggregator summary, or social post describing the event rather than constituting it."
+              },
+              "labels": {
+                "false": "primary source",
+                "true": "secondary or summary"
+              }
+            }
+          },
+          "state_digest": "89411f6e3c0ad4a5",
+          "state_chars": 139
+        },
+        "raw_response": {
+          "model": "laya-rl-agent",
+          "answers": {
+            "evidence_sufficiency": {
+              "type": "score",
+              "score": 1.8386,
+              "legend": {
+                "0": "The document is a notice, an agenda, an excerpt, or a summary. The event is named but not described.",
+                "1": "The event is described but at least one material fact is missing: a figure, a date, a counterparty, or a condition.",
+                "2": "The event is described with its main facts, though some detail is deferred to an attachment or a follow-up filing.",
+                "3": "The event is fully described with the figures, parties, dates, and conditions needed to judge it."
+              },
+              "probabilities": {
+                "0": 0.0271,
+                "1": 0.3543,
+                "2": 0.3715,
+                "3": 0.2471
+              },
+              "confidence": 0.1497,
+              "answer_confidence": 0.3715,
+              "action": {
+                "act_probability": 1.0
+              }
+            },
+            "is_summary_only": {
+              "type": "noul",
+              "noul": 0.3195,
+              "confidence": 0.6805,
+              "answer_confidence": 0.6805,
+              "action": {
+                "act_probability": 1.0
+              }
+            }
+          },
+          "usage": {
+            "input_tokens": 343,
+            "output_tokens": 0
+          },
+          "routing": {
+            "model": "english",
+            "repo": "convaiinnovations/laya",
+            "reason": "English Latin text",
+            "detection": {
+              "script": "latin",
+              "script_profile": {
+                "latin": 1.0
+              },
+              "language": "en",
+              "is_english": true,
+              "language_undecided": false,
+              "diacritic_rate": 0.0,
+              "non_latin_fraction": 0.0,
+              "mixed_segment": null
+            },
+            "workflow": null
+          }
+        },
+        "answers": {
+          "evidence_sufficiency": {
+            "type": "score",
+            "score": 1.8386,
+            "legend": {
+              "0": "The document is a notice, an agenda, an excerpt, or a summary. The event is named but not described.",
+              "1": "The event is described but at least one material fact is missing: a figure, a date, a counterparty, or a condition.",
+              "2": "The event is described with its main facts, though some detail is deferred to an attachment or a follow-up filing.",
+              "3": "The event is fully described with the figures, parties, dates, and conditions needed to judge it."
+            },
+            "probabilities": {
+              "0": 0.0271,
+              "1": 0.3543,
+              "2": 0.3715,
+              "3": 0.2471
+            },
+            "confidence": 0.1497,
+            "answer_confidence": 0.3715,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_summary_only": {
+            "type": "noul",
+            "noul": 0.3195,
+            "confidence": 0.6805,
+            "answer_confidence": 0.6805,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "checkpoint": "english",
+        "latency_ms": 2764.8239440022735,
+        "error": null,
+        "created_at": "2026-09-28T13:52:25.626+00:00"
+      }
+    ],
+    "system2_records": [
+      {
+        "record_id": "s2_f843b0c628db",
+        "turn_index": 0,
+        "provider": "heuristic",
+        "model": null,
+        "is_model": false,
+        "kind": "call_system1",
+        "decisions": [
+          "event_type",
+          "is_material",
+          "materiality",
+          "direction"
+        ],
+        "conclusion": "",
+        "confidence": 0.0,
+        "rationale": "Initial pass: request tier-1 decisions for this event.",
+        "latency_ms": 0.012770004104822874,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "repaired": false,
+        "raw_response": "<heuristic: no model was called>",
+        "error": null,
+        "created_at": "2026-09-28T13:50:29.352+00:00"
+      },
+      {
+        "record_id": "s2_a9a30337b6f5",
+        "turn_index": 1,
+        "provider": "heuristic",
+        "model": null,
+        "is_model": false,
+        "kind": "call_system1",
+        "decisions": [
+          "evidence_sufficiency",
+          "is_summary_only"
+        ],
+        "conclusion": "",
+        "confidence": 0.0,
+        "rationale": "Tier-1 complete; request evidence-quality decisions to test sufficiency.",
+        "latency_ms": 0.08546499884687364,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "repaired": false,
+        "raw_response": "<heuristic: no model was called>",
+        "error": null,
+        "created_at": "2026-09-28T13:52:22.858+00:00"
+      },
+      {
+        "record_id": "s2_45528ec8904a",
+        "turn_index": 2,
+        "provider": "heuristic",
+        "model": null,
+        "is_model": false,
+        "kind": "finish",
+        "decisions": [],
+        "conclusion": "event type: board_dividend",
+        "confidence": 0.8873,
+        "rationale": "System-1 confidence cleared the threshold.",
+        "latency_ms": 0.0657540003885515,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "repaired": false,
+        "raw_response": "<heuristic: no model was called>",
+        "error": null,
+        "created_at": "2026-09-28T13:52:25.627+00:00"
+      }
+    ],
+    "hypotheses": [],
+    "contradictions": [],
+    "disagreements": [],
+    "unresolved_questions": [],
+    "confidence": 0.8873,
+    "uncertainty": "none recorded",
+    "conclusion": "event type: board_dividend",
+    "termination": "finished",
+    "termination_reason": "System-2 concluded",
+    "trace": [
+      {
+        "index": 0,
+        "kind": "add_observation",
+        "detail": {
+          "observation_id": "obs_b4ec0a745775",
+          "source_id": "nse:RAM-EARN",
+          "content_hash": "89411f6e3c0ad4a5",
+          "is_simulated": false,
+          "chars": 139
+        },
+        "at": "2026-09-28T13:50:29.342+00:00"
+      },
+      {
+        "index": 1,
+        "kind": "system2",
+        "detail": {
+          "record_id": "s2_f843b0c628db",
+          "turn_index": 0,
+          "provider": "heuristic:None",
+          "is_model": false,
+          "kind": "call_system1",
+          "decisions": [
+            "event_type",
+            "is_material",
+            "materiality",
+            "direction"
+          ],
+          "confidence": 0.0,
+          "latency_ms": 0.0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "repaired": false,
+          "error": null
+        },
+        "at": "2026-09-28T13:50:29.352+00:00"
+      },
+      {
+        "index": 2,
+        "kind": "system1",
+        "detail": {
+          "record_id": "s1_6a4767704857",
+          "turn_index": 0,
+          "spec": "event_triage@1",
+          "decisions": [
+            "direction",
+            "event_type",
+            "is_material",
+            "materiality"
+          ],
+          "checkpoint": "english",
+          "latency_ms": 105916.3,
+          "error": null,
+          "answers": {
+            "event_type": {
+              "type": "choice",
+              "choice": "board_dividend",
+              "probabilities": {
+                "earnings_result": 0.0762,
+                "board_dividend": 0.9237,
+                "capital_action": 0.0,
+                "fundraise": 0.0,
+                "m_and_a": 0.0,
+                "leadership_change": 0.0,
+                "auditor_change": 0.0,
+                "regulatory_action": 0.0,
+                "credit_rating": 0.0,
+                "board_meeting": 0.0,
+                "other": 0.0001
+              },
+              "confidence": 0.8873,
+              "answer_confidence": 0.9237,
+              "action": {
+                "act_probability": 1.0
+              }
+            },
+            "is_material": {
+              "type": "noul",
+              "noul": 0.6433,
+              "confidence": 0.6433,
+              "answer_confidence": 0.6433,
+              "action": {
+                "act_probability": 1.0
+              }
+            },
+            "materiality": {
+              "type": "score",
+              "score": 2.2917,
+              "legend": {
+                "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+                "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+                "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+                "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+                "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+              },
+              "probabilities": {
+                "0": 0.0103,
+                "1": 0.0706,
+                "2": 0.5592,
+                "3": 0.3367,
+                "4": 0.0231
+              },
+              "confidence": 0.3705,
+              "answer_confidence": 0.5592,
+              "action": {
+                "act_probability": 1.0
+              }
+            },
+            "direction": {
+              "type": "noul",
+              "noul": 0.3034,
+              "confidence": 0.6966,
+              "answer_confidence": 0.6966,
+              "action": {
+                "act_probability": 1.0
+              }
+            }
+          }
+        },
+        "at": "2026-09-28T13:52:22.857+00:00"
+      },
+      {
+        "index": 3,
+        "kind": "advance_turn",
+        "detail": {
+          "turn_index": 1
+        },
+        "at": "2026-09-28T13:52:22.857+00:00"
+      },
+      {
+        "index": 4,
+        "kind": "system2",
+        "detail": {
+          "record_id": "s2_a9a30337b6f5",
+          "turn_index": 1,
+          "provider": "heuristic:None",
+          "is_model": false,
+          "kind": "call_system1",
+          "decisions": [
+            "evidence_sufficiency",
+            "is_summary_only"
+          ],
+          "confidence": 0.0,
+          "latency_ms": 0.1,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "repaired": false,
+          "error": null
+        },
+        "at": "2026-09-28T13:52:22.858+00:00"
+      },
+      {
+        "index": 5,
+        "kind": "system1",
+        "detail": {
+          "record_id": "s1_61033683d158",
+          "turn_index": 1,
+          "spec": "event_evidence@1",
+          "decisions": [
+            "evidence_sufficiency",
+            "is_summary_only"
+          ],
+          "checkpoint": "english",
+          "latency_ms": 2764.8,
+          "error": null,
+          "answers": {
+            "evidence_sufficiency": {
+              "type": "score",
+              "score": 1.8386,
+              "legend": {
+                "0": "The document is a notice, an agenda, an excerpt, or a summary. The event is named but not described.",
+                "1": "The event is described but at least one material fact is missing: a figure, a date, a counterparty, or a condition.",
+                "2": "The event is described with its main facts, though some detail is deferred to an attachment or a follow-up filing.",
+                "3": "The event is fully described with the figures, parties, dates, and conditions needed to judge it."
+              },
+              "probabilities": {
+                "0": 0.0271,
+                "1": 0.3543,
+                "2": 0.3715,
+                "3": 0.2471
+              },
+              "confidence": 0.1497,
+              "answer_confidence": 0.3715,
+              "action": {
+                "act_probability": 1.0
+              }
+            },
+            "is_summary_only": {
+              "type": "noul",
+              "noul": 0.3195,
+              "confidence": 0.6805,
+              "answer_confidence": 0.6805,
+              "action": {
+                "act_probability": 1.0
+              }
+            }
+          }
+        },
+        "at": "2026-09-28T13:52:25.626+00:00"
+      },
+      {
+        "index": 6,
+        "kind": "advance_turn",
+        "detail": {
+          "turn_index": 2
+        },
+        "at": "2026-09-28T13:52:25.626+00:00"
+      },
+      {
+        "index": 7,
+        "kind": "system2",
+        "detail": {
+          "record_id": "s2_45528ec8904a",
+          "turn_index": 2,
+          "provider": "heuristic:None",
+          "is_model": false,
+          "kind": "finish",
+          "decisions": [],
+          "confidence": 0.8873,
+          "latency_ms": 0.1,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "repaired": false,
+          "error": null
+        },
+        "at": "2026-09-28T13:52:25.627+00:00"
+      },
+      {
+        "index": 8,
+        "kind": "outcome",
+        "detail": {
+          "confidence": 0.8873,
+          "conclusion": "event type: board_dividend"
+        },
+        "at": "2026-09-28T13:52:25.627+00:00"
+      },
+      {
+        "index": 9,
+        "kind": "terminate",
+        "detail": {
+          "status": "finished",
+          "reason": "System-2 concluded"
+        },
+        "at": "2026-09-28T13:52:25.627+00:00"
+      }
+    ],
+    "config": {
+      "max_turns": 3,
+      "min_confidence": 0.55,
+      "system2_timeout_s": 90.0,
+      "allow_escalation": true,
+      "fallback_to_heuristic": true
+    },
+    "errors": []
+  },
+  "trace_digest": "0fb08eccefbe7851"
+}

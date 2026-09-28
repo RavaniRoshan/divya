@@ -1,0 +1,345 @@
+{
+  "environment": {
+    "python": "3.12.3",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "cpu_count": 16,
+    "torch": "2.14.0+cpu",
+    "cuda_available": false
+  },
+  "cold_load_s": 280.03,
+  "routed_checkpoint": "english",
+  "forced_model": null,
+  "repeat": 3,
+  "latency_ms_p50_median": 4552.5,
+  "latency_ms_p50_min": 3951.1,
+  "latency_ms_p50_max": 5806.4,
+  "peak_rss_mb": 2746.2,
+  "results": [
+    {
+      "fixture_id": "earnings_q2",
+      "expected_hint": "earnings_result / material / level 3 / not adverse",
+      "routed_model": "english",
+      "latency_ms": {
+        "p50": 5806.4,
+        "min": 5046.3,
+        "max": 8645.4,
+        "all": [
+          8645.4,
+          5806.4,
+          5046.3
+        ]
+      },
+      "raw_answers": {
+        "event_type": {
+          "type": "choice",
+          "choice": "earnings_result",
+          "probabilities": {
+            "earnings_result": 0.9999,
+            "board_dividend": 0.0001,
+            "capital_action": 0.0,
+            "fundraise": 0.0,
+            "m_and_a": 0.0,
+            "leadership_change": 0.0,
+            "auditor_change": 0.0,
+            "regulatory_action": 0.0,
+            "credit_rating": 0.0,
+            "board_meeting": 0.0,
+            "other": 0.0
+          },
+          "confidence": 0.9993,
+          "answer_confidence": 0.9999,
+          "action": {
+            "act_probability": 1.0
+          }
+        },
+        "is_material": {
+          "type": "noul",
+          "noul": 0.7726,
+          "confidence": 0.7726,
+          "answer_confidence": 0.7726,
+          "action": {
+            "act_probability": 1.0
+          }
+        },
+        "materiality": {
+          "type": "score",
+          "score": 1.9404,
+          "legend": {
+            "0": "routine or procedural; already known",
+            "1": "minor; small in financial terms or no immediate consequence",
+            "2": "moderate; material result, capital action, or significant strategic change",
+            "3": "major; large result, transformative acquisition, substantial fundraise",
+            "4": "severe; control change, going-concern doubt, trading ban, fraud"
+          },
+          "probabilities": {
+            "0": 0.128,
+            "1": 0.0986,
+            "2": 0.4872,
+            "3": 0.2777,
+            "4": 0.0086
+          },
+          "confidence": 0.2305,
+          "answer_confidence": 0.4872,
+          "action": {
+            "act_probability": 1.0
+          }
+        },
+        "direction": {
+          "type": "noul",
+          "noul": 0.1912,
+          "confidence": 0.8088,
+          "answer_confidence": 0.8088,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "board_meeting_notice",
+      "expected_hint": "board_meeting / not material / level 0 / neutral",
+      "routed_model": "english",
+      "latency_ms": {
+        "p50": 4930.3,
+        "min": 4808.2,
+        "max": 5015.4,
+        "all": [
+          5015.4,
+          4930.3,
+          4808.2
+        ]
+      },
+      "raw_answers": {
+        "event_type": {
+          "type": "choice",
+          "choice": "board_meeting",
+          "probabilities": {
+            "earnings_result": 0.0173,
+            "board_dividend": 0.0,
+            "capital_action": 0.0,
+            "fundraise": 0.0,
+            "m_and_a": 0.0,
+            "leadership_change": 0.0,
+            "auditor_change": 0.0,
+            "regulatory_action": 0.0,
+            "credit_rating": 0.0,
+            "board_meeting": 0.9826,
+            "other": 0.0001
+          },
+          "confidence": 0.9629,
+          "answer_confidence": 0.9826,
+          "action": {
+            "act_probability": 1.0
+          }
+        },
+        "is_material": {
+          "type": "noul",
+          "noul": 0.6733,
+          "confidence": 0.6733,
+          "answer_confidence": 0.6733,
+          "action": {
+            "act_probability": 1.0
+          }
+        },
+        "materiality": {
+          "type": "score",
+          "score": 1.3923,
+          "legend": {
+            "0": "routine or procedural; already known",
+            "1": "minor; small in financial terms or no immediate consequence",
+            "2": "moderate; material result, capital action, or significant strategic change",
+            "3": "major; large result, transformative acquisition, substantial fundraise",
+            "4": "severe; control change, going-concern doubt, trading ban, fraud"
+          },
+          "probabilities": {
+            "0": 0.1664,
+            "1": 0.353,
+            "2": 0.4103,
+            "3": 0.0624,
+            "4": 0.0079
+          },
+          "confidence": 0.2279,
+          "answer_confidence": 0.4103,
+          "action": {
+            "act_probability": 1.0
+          }
+        },
+        "direction": {
+          "type": "noul",
+          "noul": 0.1307,
+          "confidence": 0.8693,
+          "answer_confidence": 0.8693,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "regulatory_penalty",
+      "expected_hint": "regulatory_action / material / level 3 / adverse",
+      "routed_model": "english",
+      "latency_ms": {
+        "p50": 4174.6,
+        "min": 4106.7,
+        "max": 4236.6,
+        "all": [
+          4236.6,
+          4174.6,
+          4106.7
+        ]
+      },
+      "raw_answers": {
+        "event_type": {
+          "type": "choice",
+          "choice": "regulatory_action",
+          "probabilities": {
+            "earnings_result": 0.0001,
+            "board_dividend": 0.0,
+            "capital_action": 0.0,
+            "fundraise": 0.0,
+            "m_and_a": 0.0,
+            "leadership_change": 0.0,
+            "auditor_change": 0.0,
+            "regulatory_action": 0.9996,
+            "credit_rating": 0.0,
+            "board_meeting": 0.0,
+            "other": 0.0003
+          },
+          "confidence": 0.9984,
+          "answer_confidence": 0.9996,
+          "action": {
+            "act_probability": 1.0
+          }
+        },
+        "is_material": {
+          "type": "noul",
+          "noul": 0.4143,
+          "confidence": 0.5857,
+          "answer_confidence": 0.5857,
+          "action": {
+            "act_probability": 1.0
+          }
+        },
+        "materiality": {
+          "type": "score",
+          "score": 1.5047,
+          "legend": {
+            "0": "routine or procedural; already known",
+            "1": "minor; small in financial terms or no immediate consequence",
+            "2": "moderate; material result, capital action, or significant strategic change",
+            "3": "major; large result, transformative acquisition, substantial fundraise",
+            "4": "severe; control change, going-concern doubt, trading ban, fraud"
+          },
+          "probabilities": {
+            "0": 0.0856,
+            "1": 0.4195,
+            "2": 0.4102,
+            "3": 0.0739,
+            "4": 0.0108
+          },
+          "confidence": 0.2658,
+          "answer_confidence": 0.4195,
+          "action": {
+            "act_probability": 1.0
+          }
+        },
+        "direction": {
+          "type": "noul",
+          "noul": 0.2531,
+          "confidence": 0.7469,
+          "answer_confidence": 0.7469,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "summary_not_filing",
+      "expected_hint": "m_and_a or fundraise / material / level 3-4 / favourable",
+      "routed_model": "english",
+      "latency_ms": {
+        "p50": 3951.1,
+        "min": 3933.6,
+        "max": 3983.9,
+        "all": [
+          3951.1,
+          3983.9,
+          3933.6
+        ]
+      },
+      "raw_answers": {
+        "event_type": {
+          "type": "choice",
+          "choice": "m_and_a",
+          "probabilities": {
+            "earnings_result": 0.0011,
+            "board_dividend": 0.0014,
+            "capital_action": 0.0028,
+            "fundraise": 0.0163,
+            "m_and_a": 0.9239,
+            "leadership_change": 0.0003,
+            "auditor_change": 0.0002,
+            "regulatory_action": 0.0001,
+            "credit_rating": 0.0003,
+            "board_meeting": 0.0042,
+            "other": 0.0494
+          },
+          "confidence": 0.853,
+          "answer_confidence": 0.9239,
+          "action": {
+            "act_probability": 1.0
+          }
+        },
+        "is_material": {
+          "type": "noul",
+          "noul": 0.5702,
+          "confidence": 0.5702,
+          "answer_confidence": 0.5702,
+          "action": {
+            "act_probability": 1.0
+          }
+        },
+        "materiality": {
+          "type": "score",
+          "score": 2.3249,
+          "legend": {
+            "0": "routine or procedural; already known",
+            "1": "minor; small in financial terms or no immediate consequence",
+            "2": "moderate; material result, capital action, or significant strategic change",
+            "3": "major; large result, transformative acquisition, substantial fundraise",
+            "4": "severe; control change, going-concern doubt, trading ban, fraud"
+          },
+          "probabilities": {
+            "0": 0.0131,
+            "1": 0.0609,
+            "2": 0.5235,
+            "3": 0.3931,
+            "4": 0.0094
+          },
+          "confidence": 0.3929,
+          "answer_confidence": 0.5235,
+          "action": {
+            "act_probability": 1.0
+          }
+        },
+        "direction": {
+          "type": "noul",
+          "noul": 0.171,
+          "confidence": 0.829,
+          "answer_confidence": 0.829,
+          "action": {
+            "act_probability": 1.0
+          }
+        }
+      }
+    }
+  ],
+  "notes": [
+    "Latency is full-pipeline Router.predict on this CPU, including tokenisation.",
+    "No GPU: torch CPU wheel, cuda_available is False.",
+    "Raw answers recorded verbatim. Hints are our expectation, not ground truth, and are not used to score here -- this run measures cost and behaviour, not accuracy."
+  ]
+}

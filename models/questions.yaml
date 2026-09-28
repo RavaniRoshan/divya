@@ -1,0 +1,323 @@
+# DIVYA DECISION PROTOCOL
+#
+# This file is the contract for what System-1 (Laya) is allowed to decide. It is versioned
+# separately from the code because the option set of a `choice` question *is* the decision
+# problem: changing an option changes what the engine is being asked, and makes answers
+# recorded before and after non-comparable.
+#
+# Tiers encode selective invocation:
+#   tier 1 -- what a single-shot System-2 -> Laya pass should be able to answer. Arm C
+#             (the baseline) requests exactly these.
+#   tier 2+ -- requested only when tier-1 output indicates the evidence is thin. Arm D
+#             (the recurrent loop) may escalate into these.
+#
+# Rules for editing:
+#   - Bump `version` on a spec whenever any question's type, instructions, criteria, or
+#     labels change. `divya protocol diff` will show the change; stored decisions carry the
+#     spec version they were made under.
+#   - Adding a new spec does not require bumping existing specs.
+#   - Do not hard-code decisions in prompts. If a decision matters, it belongs here.
+#
+# Validation is enforced at load time by src/divya/protocol/schema.py + loader.py.
+
+protocol_version: "0.1.0"
+
+specs:
+  # ---------------------------------------------------------------------------
+  # Tier-1 pass: classify a single corporate disclosure.
+  #
+  # Scope is deliberately narrow. This spec answers "what kind of corporate event is this,
+  # how material is it, and which way does it cut" -- nothing else. Sentiment forecasting,
+  # price targets, and investment recommendations are explicitly out of scope: a market
+  # terminal that cannot explain itself is worse than no terminal.
+  # ---------------------------------------------------------------------------
+  - name: event_triage
+    version: 1
+    purpose: >-
+      Classify a single Indian corporate disclosure into one event type, grade its
+      materiality, and establish its direction. This is the minimum set a single-shot
+      reasoning pass needs to be useful on its own.
+    checkpoint: null          # null => let Laya's router choose by script/language
+    max_len: 2048
+    evaluation_dataset: evals/datasets/event_triage_v1.jsonl
+    questions:
+
+      - name: event_type
+        type: choice
+        tier: 1
+        purpose: Primary classification of the disclosure.
+        instructions: >-
+          Choose the single category that best describes the main corporate event described
+          in this document. If the document describes more than one event, choose the one that
+          appears to be the subject of the filing rather than a passing mention.
+        criteria:
+          earnings_result: >-
+            Quarterly or annual financial results: revenue, profit, EPS, margins, or a
+            comparison against prior periods or guidance.
+          board_dividend: >-
+            Declaration of a dividend, an interim dividend, or a change in dividend policy.
+          capital_action: >-
+            Share buyback, bonus issue, rights issue, stock split, or subdivision of shares.
+          fundraise: >-
+            Raising new capital: an issue of shares, warrants, debt, or an IPO for a subsidiary.
+          m_and_a: >-
+            Acquisition, disposal, merger, demerger, joint venture, or sale of a subsidiary.
+          leadership_change: >-
+            Appointment, resignation, or retirement of a director, promoter, or key executive.
+          auditor_change: >-
+            Change of statutory auditor, or an auditor resignation with a qualification.
+          regulatory_action: >-
+            Action by a regulator, exchange, or court: penalty, show-cause notice, trading
+            ban, listing suspension, or a legal proceeding.
+          credit_rating: >-
+            Change in a credit rating, outlook, or a rating agency action.
+          board_meeting: >-
+            Notice of a board meeting to consider results or a specific agenda item, with no
+            results or decision stated yet.
+          other: >-
+            Any other corporate disclosure that does not fit the categories above.
+        required_evidence:
+          - A stated corporate action, financial figure, or filing outcome.
+        calibration_expectation: >-
+          Low confidence is expected and correct on boilerplate notices, meeting-date
+          reminders, and routine compliance filings. The `other` option is a legitimate answer,
+          not a failure to classify.
+        known_failure_modes:
+          - Boilerplate board-meeting notices are often misread as a result announcement.
+          - A dividend mention inside a results release may be classified as board_dividend
+            rather than earnings_result; which is correct depends on the filing's stated subject.
+          - Documents that are summaries or news rewrites rather than the filing itself.
+        downstream_consumers:
+          - event_state.materiality
+          - terminal.event_stream
+
+      - name: is_material
+        type: noul
+        tier: 1
+        purpose: >-
+          Binary materiality gate. This is the decision the terminal is allowed to abstain on,
+          so its calibration matters more than its accuracy.
+        instructions: >-
+          Decide whether this disclosure is material to a company following the stock: whether
+          it could plausibly change what an informed investor would do or expect. Routine
+          filings that restate information already public, or that require no action, are not
+          material.
+        criteria:
+          "false": >-
+            Routine, procedural, or already-public information: meeting-date reminders,
+            statutory compliance filings, resignations of non-executive directors with no
+            stated reason, or a dividend at the previously declared rate.
+          "true": >-
+            New financial results, a change in capital, an acquisition, a regulatory action
+            against the company, a going-concern or audit qualification, or any disclosure with
+            a stated financial consequence not already known.
+        labels:
+          "false": not material
+          "true": material
+        required_evidence:
+          - A concrete action or figure stated in the document.
+        calibration_expectation: >-
+          This noul is the abstention signal. It is expected to sit near 0.5 on genuinely
+          ambiguous filings, and that is the desired behaviour: a high-confidence answer here
+          is a bug, not a success. Evaluated with Brier score and ECE, not accuracy alone.
+        known_failure_modes:
+          - The model is documented upstream as over-confident on noul questions; a
+            temperature refit is expected to be necessary.
+          - "Scale: a small order is material for a micro-cap and not for a large-cap, and
+            the same text will be graded differently. This spec has no market-cap input."
+        downstream_consumers:
+          - event_state.materiality
+          - runtime.abstention
+          - terminal.alert_banner
+
+      - name: materiality
+        type: score
+        tier: 1
+        purpose: Ordinal severity of the event, independent of direction.
+        instructions: >-
+          Grade how significant this event is for the company, from routine to severe. Consider
+          financial size, whether it affects capital structure or control, and whether it is
+          reversible.
+        criteria:
+          - >-
+            Routine. Procedural, or already known. A meeting notice, a compliance filing, or an
+            unchanged dividend.
+          - >-
+            Minor. Real but small in financial terms, or a change with no immediate financial
+            consequence, such as a non-executive director change.
+          - >-
+            Moderate. A material financial result, a meaningful capital action, or a
+            significant leadership or strategic change.
+          - >-
+            Major. A large result, a transformative acquisition, a substantial fundraise, or a
+            significant regulatory or credit action.
+          - >-
+            Severe. Control changes, going-concern doubt, audit qualifications, trading bans,
+            fraud, or an event that would plausibly halt trading.
+        required_evidence:
+          - A stated figure, proportion, or severity marker in the document.
+        calibration_expectation: >-
+          Levels are ordered but the boundaries are genuinely fuzzy between adjacent levels.
+          Adjacent-level disagreement should be treated as a near-miss, not an error, and the
+          evaluation reports this separately.
+        known_failure_modes:
+          - "Severity without scale: a 2% revenue change is minor for a large-cap and severe
+            for a micro-cap. This spec does not receive market capitalisation."
+          - Confuses direction with severity. A large loss and a large profit are both level 4.
+        downstream_consumers:
+          - event_state.materiality
+          - terminal.event_detail
+
+      - name: direction
+        type: noul
+        tier: 1
+        purpose: >-
+          Which way the event cuts for a holder of the stock. Binary rather than three-way
+          because Laya's noul is the only primitive with a calibrated probability attached, and
+          the probability is what the terminal displays and what abstention keys off.
+        instructions: >-
+          Decide the effect of this event on the value of the company's shares, judged on
+          information available in this document alone. Judge the effect on the business, not on
+          how the market might react to it.
+        criteria:
+          "false": >-
+            Neutral or favourable: results at or above expectations, a dividend increase, an
+            accretive acquisition, a credit upgrade, or an event with no clear effect either way.
+          "true": >-
+            Adverse: results well below expectations, a loss, a dilution, a regulatory penalty,
+            a credit downgrade, a qualified audit opinion, or an adverse leadership event.
+        labels:
+          "false": neutral or favourable
+          "true": adverse
+        required_evidence:
+          - A figure or outcome that can be compared against a prior state.
+        calibration_expectation: >-
+          The hardest of the tier-1 decisions and the one most likely to need abstention.
+          "Neutral" and "favourable" are collapsed into the false class deliberately: the
+          distinction between a good outcome and an indifferent one is not reliably decidable
+          from a single filing, and forcing a three-way choice would manufacture false
+          precision.
+        known_failure_modes:
+          - Neutral events are pushed into the favourable class because "not bad" reads as "good".
+          - A filing that lists both a profit warning and a dividend may match either side.
+          - Measuring against consensus rather than against the company's own prior state.
+        downstream_consumers:
+          - event_state.direction
+          - terminal.event_detail
+
+  # ---------------------------------------------------------------------------
+  # Tier-2 pass: only worth its cost when tier 1 says the evidence is thin.
+  #
+  # These exist to be requested selectively. Arm D escalates into them; arm C never does.
+  # ---------------------------------------------------------------------------
+  - name: event_evidence
+    version: 1
+    purpose: >-
+      Assess whether the document actually supports the tier-1 decision, and identify what is
+      missing. This spec is the escalation target: it is expensive relative to its value on
+      clear filings and decisive on unclear ones.
+    checkpoint: null
+    max_len: 2048
+    evaluation_dataset: evals/datasets/event_evidence_v1.jsonl
+    questions:
+
+      - name: evidence_sufficiency
+        type: score
+        tier: 2
+        purpose: How much the document actually establishes.
+        instructions: >-
+          Rate how completely this document states the facts needed to judge the event. A
+          document that names the action but omits the figures, the counterparty, the effective
+          date, or the conditions scores low.
+        criteria:
+          - >-
+            The document is a notice, an agenda, an excerpt, or a summary. The event is named
+            but not described.
+          - >-
+            The event is described but at least one material fact is missing: a figure, a date,
+            a counterparty, or a condition.
+          - >-
+            The event is described with its main facts, though some detail is deferred to an
+            attachment or a follow-up filing.
+          - >-
+            The event is fully described with the figures, parties, dates, and conditions
+            needed to judge it.
+        required_evidence:
+          - The document body, not a headline alone.
+        calibration_expectation: >-
+          Intended to be a low-confidence question on news rewrites and attachment-dependent
+          filings. If it reports high confidence everywhere it is not discriminating, and the
+          evaluation should treat uniformly-high output as a failed signal rather than a good
+          result.
+        known_failure_modes:
+          - A headline-only input with no body scores as if it were complete.
+          - "Length is a confound: long filings feel complete whether or not they are."
+        downstream_consumers:
+          - runtime.needs_another_decision
+          - runtime.abstention
+
+      - name: is_summary_only
+        type: noul
+        tier: 2
+        purpose: >-
+          Detect second-hand text. A rewrite of a filing is not a filing, and classifying one as
+          though it were primary is a provenance failure, not a reasoning failure.
+        instructions: >-
+          Decide whether this document is a secondary account -- a news report, blog post,
+          aggregator entry, or social media post describing a corporate event -- rather than the
+          company's own disclosure or an exchange/regulator publication.
+        criteria:
+          "false": >-
+            Primary: the company's own filing, an exchange or regulator publication, an
+            audited financial statement, or a prepared investor presentation.
+          "true": >-
+            Secondary: a news article, commentary, aggregator summary, or social post describing
+            the event rather than constituting it.
+        labels:
+          "false": primary source
+          "true": secondary or summary
+        required_evidence:
+          - "Observable markers of authorship: byline, publisher, publication style, or the
+            absence of a filing reference."
+        calibration_expectation: >-
+          Should be high-confidence on clearly-attributed news text and on clearly-formatted
+          filings. The interesting cases are reposts of filings, where it is genuinely hard.
+        known_failure_modes:
+          - Exchange-hosted copies of press releases are primary but are formatted like news.
+          - An aggregator may reproduce a filing verbatim, making authorship ambiguous.
+        downstream_consumers:
+          - event_state.provenance
+          - terminal.source_badge
+          - runtime.abstention
+
+      - name: numeric_disclosure_present
+        type: noul
+        tier: 2
+        purpose: >-
+          Gate for any decision that requires a figure. Absence of numbers is a first-class
+          signal, not a gap to be filled by inference.
+        instructions: >-
+          Decide whether this document states a specific numeric fact: a financial figure, a
+          percentage, a share count, a price, a date, or a threshold.
+        criteria:
+          "false": >-
+            No specific number. The document is qualitative, is a notice without figures, or
+            refers to figures without stating them.
+          "true": >-
+            At least one specific number is stated: a financial figure, percentage, share
+            count, price, threshold, or dated schedule.
+        labels:
+          "false": no numeric detail
+          "true": numeric detail present
+        required_evidence:
+          - A literal numeric token in the document.
+        calibration_expectation: >-
+          Near-deterministic and should score close to perfect. If it does not, the fault is
+          almost certainly in text extraction rather than in the model, and that is worth
+          knowing -- it is a cheap canary on the ingestion path.
+        known_failure_modes:
+          - Numbers in tables or attachments lost during text extraction.
+          - Indian numbering conventions (crore, lakh) misread as non-numeric.
+        downstream_consumers:
+          - runtime.needs_another_decision
+          - event_state.extraction_canary
