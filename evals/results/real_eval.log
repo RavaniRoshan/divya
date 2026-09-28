@@ -3,3 +3,9 @@
 /home/shiva/projects/divya/.venv/lib/python3.12/site-packages/laya/router.py:456: RuntimeWarning: laya: this checkpoint ships invalid temperatures or values outside [0.5, 5]; using choice:11+=0.10058280825614929 -> 0.5. Treat confidence from the affected entries as uncalibrated.
   agent = Agent(repo, **kwargs)
   A: 20/120 (79s)
+  A: 40/120 (166s)
+  A: 60/120 (247s)
+  A: 80/120 (328s)
+  A: 100/120 (407s)
+  A: 120/120 (481s)
+[arm B] running 120 items ...

@@ -4,49 +4,50 @@ Exactly one item is `IN_PROGRESS`. Everything else is a queue, not a promise.
 
 ---
 
-## `[~]` IN_PROGRESS — N1: First real Laya call on this CPU
+## `[~]` IN_PROGRESS — E-009: read the completed A/B/C/D result
 
-**Why this is first.** Every latency budget, every cost estimate, and the feasibility of the
-entire Level-1/Level-2 design depends on one unmeasured fact: what does Laya actually cost and
-actually answer, on *this* machine, on *finance-shaped* text? The PDR's numbers are from a
-T4 and a support-triage benchmark. Until this is measured, any architecture choice is a guess.
+**Why this is the only thing that matters right now.** Everything else in the project is
+either infrastructure for this measurement or already done. The thesis — that a recurrent
+System-2 ↔ System-1 loop beats a single-shot System-2 → System-1 tool call — is unresolved, and
+the run on 120 real NSE announcements is in flight.
 
 **Done when:**
-- Laya is installed and a checkpoint is resident.
-- `research/scripts/bench_laya.py` has run and written a result artifact.
-- The result records: cold-load seconds, warm p50/p95 per `predict`, which checkpoint routed,
-  and raw answers for a finance-shaped question set.
-- The numbers are in `EVALS.md` and `RESEARCH.md`, tagged `[RESULT]`, with hardware stated.
-- A5 (latency) and A6 (finance quality) move from `[HYPOTHESIS]` to measured-or-rejected.
+- `evals/results/real_eval.json` exists and every arm is populated.
+- H1/H2/H3/H4 each get an explicit verdict, including "the data does not distinguish them".
+- The result is written into `docs/loop/STATUS.md`, `docs/research/UNIFICATION_EXPERIMENTS.md`
+  (E-009), and the final report — **whatever it says**.
+- If D does not beat C, the product ships at Level 1 and Level 3/4 stay unbuilt, with that
+  stated as the outcome rather than as a failure to hide.
 
-**Explicit non-goal for this step:** do not build the runtime, the protocol, or the terminal yet.
-Measuring first is the entire point.
+**Explicit anti-goal:** do not re-run with a different seed, a different subset, or a different
+model until it goes our way. One pre-registered run, reported as it came out.
 
 ---
 
-## Queue (ordered; each is small enough to verify before moving on)
+## Queue
 
-- `[ ]` **N2** First System-2 structured-output measurement. Does a 4B local model emit valid,
-  schema-conforming S2 turns? Decides B-003. If not, add constrained decoding before any
-  runtime work.
-- `[ ]` **N3** Write `docs/architecture/UNIFIED_MODEL.md` at implementation level: roles, shared
-  state schema, request/response JSON schemas, termination, budgets, observability. Written
-  *after* N1/N2 so the latency and reliability budgets are real numbers, not guesses.
-- `[ ]` **N4** `models/questions.yaml` v0 + JSON schemas, import-tested. Option sets are
-  versioned artifacts because `choice` options *are* the decision problem (see RESEARCH A2).
-- `[ ]` **N5** Level-1 baseline (`C` arm) end to end. Measure it before Level 2 exists, so the
-  comparison is real and not retrofitted.
-- `[ ]` **N6** Level-2 recurrent loop + shared state + JSONL traces + termination + abstention.
-  Replay test proving a human can reconstruct the full trajectory.
-- `[ ]` **N7** First real domain. Scope to earnings / corporate actions only.
-- `[ ]` **N8** A/B/C/D evaluation harness. This is the deliverable that answers the thesis.
-- `[ ]` **N9** Terminal UI.
-- `[ ]` **N10** Red-team suite. Safe degradation is an acceptance criterion, not a nice-to-have.
-- `[ ]` **N11** Release: clean-clone setup verified, README matches implementation.
+- `[ ]` **PDF extraction.** `attchmntText` is a one-line summary (median 154 chars); the filing
+  body is in the attached PDF. Unblocks the biggest data gap (B-004) and could change every
+  conclusion, because a materiality judgement needs the figures a summary omits.
+- `[ ]` **Temperature refit on a Divya dev set.** Laya's mid-confidence band is 20% accurate at
+  63% stated confidence. A refit is the direct remedy and is the highest-value model work left.
+- `[ ]` **ONNX measurement.** `laya[onnx]` is the one untested performance lever.
+  `pip install 'laya[onnx]'` and re-run `bench_resources.py`.
+- `[ ]` **Expert hand-labelling** for `is_material` / `materiality` / `direction` on a real
+  sample, with recorded annotator confidence. Unblocks two of four decisions on real data (B-005).
+- `[ ]` **Red-team suite as a named test module.** The degradation paths are implemented and
+  individually tested; they are not yet collected into one adversarial run over a real corpus.
+- `[ ]` **Clean-clone verification.** `git clone` to a fresh directory, `make setup && make check`,
+  and record the actual output.
+- `[ ]` **Level 3 (System-2 fine-tuning) and Level 4 (fusion).** Only if E-009 shows D > C.
+  Otherwise these are explicitly declined, and declining them is the correct outcome.
 
 ## Standing rules for this queue
 
-- Do not skip ahead to build something whose feasibility depends on an unmeasured value above it.
-- A negative result on N1 or N8 is a valid, valuable outcome. **Record it; do not hide it and do
-  not re-run until it goes our way.** Distinguishing H1 from H2 is the point of the exercise.
+- A negative result is a valid, valuable outcome. **Record it; do not hide it and do not re-run
+  until it goes our way.**
+- Distinguishing H1 from H2 from H3 is the point. Reporting "the loop is fine" without naming
+  which hypothesis survived is not a result.
 - Every item ends with a command whose output was actually observed.
+- Anything that needs a human — a licence, a secret, a destructive action — goes to
+  `docs/loop/BLOCKERS.md` and into the final report. Never worked around silently.
