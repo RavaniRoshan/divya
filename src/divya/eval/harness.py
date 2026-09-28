@@ -72,12 +72,17 @@ class Item:
 
     @classmethod
     def from_json(cls, d: dict[str, Any]) -> Item:
+        # Real NSE records carry `annotator_confidence: null` because the label is a published
+        # exchange classification, not an annotation. There is no honest confidence to report
+        # for it, so None is carried through rather than defaulted to 1.0, which would let a
+        # label with no stated provenance look as reliable as a hand-checked one.
+        conf = d.get("annotator_confidence")
         return cls(
             id=d["id"],
             stratum=d["stratum"],
             content=d["content"],
             labels=d["labels"],
-            annotator_confidence=float(d.get("annotator_confidence", 1.0)),
+            annotator_confidence=float(conf) if conf is not None else 0.0,
             ambiguous_alternatives=d.get("ambiguous_alternatives", []) or [],
             is_adversarial=bool(d.get("is_adversarial", False)),
             is_synthetic_text=bool(d.get("is_synthetic_text", True)),
@@ -196,7 +201,7 @@ class ArmRunner:
         return rec
 
     # -- A: System-1 alone, no reasoning model -----------------------------
-    def _arm_a(self, item: Item) -> dict[str, Any]:
+    async def _arm_a(self, item: Item) -> dict[str, Any]:
         spec = self.protocol.by_name("event_triage")
         rec = self.system1.answer(item.content, spec, turn_index=0, protocol_version=self.protocol.protocol_version)
         return {
@@ -437,15 +442,23 @@ def aggregate(records: list[dict[str, Any]], items_by_id: dict[str, Item]) -> di
         probs.append(p)
         correct.append(1 if pred == truth else 0)
 
-        n_pred, n_p = score_noul(answers.get("is_material"))
-        matl_true.append(1 if item.labels["is_material"] else 0)
-        matl_pred.append(n_p)
-        matl_conf.append(n_p)
-        matl_correct.append(1 if n_pred == (1 if item.labels["is_material"] else 0) else 0)
+        # Only score a decision when the dataset actually carries a label for it. The live NSE
+        # feed supplies `desc` -> `event_type` and nothing else; there is no published ground
+        # truth for is_material, materiality or direction. Inventing one, or scoring the model
+        # against its own output, would be circular. The report names which metrics ran.
+        if "is_material" in item.labels:
+            want = 1 if item.labels["is_material"] else 0
+            n_pred, n_p = score_noul(answers.get("is_material"))
+            matl_true.append(want)
+            matl_pred.append(n_p)
+            matl_conf.append(n_p)
+            matl_correct.append(1 if n_pred == want else 0)
 
-        s_pred, _s_conf = score_score(answers.get("materiality"))
-        mat_pred.append(s_pred if s_pred is not None else -1.0)
-        mat_true.append(int(item.labels["materiality"]))
+        if "materiality" in item.labels:
+            s_pred, _s_conf = score_score(answers.get("materiality"))
+            if s_pred is not None:
+                mat_pred.append(s_pred)
+                mat_true.append(int(item.labels["materiality"]))
 
     ece, ece_bins = M.expected_calibration_error(probs, correct)
     curve, aurc = M.risk_coverage(probs, correct)
@@ -463,20 +476,28 @@ def aggregate(records: list[dict[str, Any]], items_by_id: dict[str, Item]) -> di
             "aurc": round(aurc, 4),
             "risk_coverage": curve[:: max(1, len(curve) // 20)],
         },
-        "is_material_noul": {
-            "brier": round(M.binary_brier(matl_pred, matl_true), 4),
-            "ece": round(M.expected_calibration_error(matl_conf, matl_correct)[0], 4),
-            "accuracy_at_0.5": round(
-                sum(matl_correct) / len(matl_correct), 4
-            ) if matl_correct else 0.0,
-        },
-        "materiality_ordinal": {
-            "exact": round(
-                sum(1 for t, p in zip(mat_true, mat_pred, strict=True) if p >= 0 and round(p) == t)
-                / len(mat_true), 4
-            ) if mat_true else 0.0,
-            "within_one": round(M.near_miss_rate(mat_true, mat_pred, 1), 4),
-        },
+        "is_material_noul": (
+            {
+                "n_labeled": len(matl_true),
+                "brier": round(M.binary_brier(matl_pred, matl_true), 4),
+                "ece": round(M.expected_calibration_error(matl_conf, matl_correct)[0], 4),
+                "accuracy_at_0.5": round(sum(matl_correct) / len(matl_correct), 4),
+            }
+            if matl_true
+            else {"n_labeled": 0, "status": "not evaluated: dataset has no is_material ground truth"}
+        ),
+        "materiality_ordinal": (
+            {
+                "n_labeled": len(mat_true),
+                "exact": round(
+                    sum(1 for t, p in zip(mat_true, mat_pred, strict=True) if round(p) == t)
+                    / len(mat_true), 4
+                ),
+                "within_one": round(M.near_miss_rate(mat_true, mat_pred, 1), 4),
+            }
+            if mat_true
+            else {"n_labeled": 0, "status": "not evaluated: dataset has no materiality ground truth"}
+        ),
         "cost": {
             "wall_ms_mean": round(statistics.fmean(latencies), 1) if latencies else 0.0,
             "wall_ms_p95": round(M.p95(latencies), 1),
@@ -568,7 +589,7 @@ def build_system2_factory(
     if kind == "ollama":
         from divya.system2.provider import OllamaProvider
 
-        return lambda: OllamaProvider(model=model or "qwen3:4b", base_url=base_url or "http://localhost:11434")
+        return lambda: OllamaProvider(model=model or "qwen2.5-coder:3b", base_url=base_url or "http://localhost:11434")
     if kind in {"openai_compatible", "openai"}:
         from divya.system2.provider import OpenAICompatProvider
 
@@ -662,7 +683,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--arms", nargs="+", default=list(ARMS), choices=list(ARMS))
     ap.add_argument("--provider", default="ollama",
                     help="ollama | openai_compatible | heuristic")
-    ap.add_argument("--model", default="qwen3:4b")
+    ap.add_argument("--model", default="qwen2.5-coder:3b")
     ap.add_argument("--base-url", default=None)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--strata", nargs="*", default=None)

@@ -250,3 +250,166 @@ the target box has is not a self-hosting design.
 **REVERSIBILITY.** Reversible — the provider interface is swappable without touching the runtime.
 
 **FOLLOW-UP.** Measure System-2 structured-output validity rate (blocker B-003).
+
+---
+
+## D-008 — 2026-09-28 — `event_type` reduced 11 → 10 options: the shipped checkpoint's `choice:11+` bucket is uncalibrated
+
+**DECISION.** `event_triage` v1 → v2. `board_dividend` merged into `capital_action`, taking
+`event_type` from 11 options to 10. `load_protocol` now refuses to load any protocol whose
+`choice` question lands in a bucket the checkpoint's calibration does not cover.
+
+**CONTEXT.** Laya fits a separate temperature per `(type, option-count)` bucket. Our 11-option
+`event_type` question landed in the `choice:11+` bucket, and every calibration number it
+produced was measuring a value the library had already disclaimed.
+
+**EVIDENCE.** Read from the shipped checkpoint's `rl_agent_config.json`, 2026-09-28. Bucket rule
+reproduced from `laya/common.py:499` `temp_bucket`: `k≤2→"2"`, `k≤5→"3-5"`, `k≤10→"6-10"`,
+else `"11+"`.
+
+| Bucket | Temperature | Status |
+|---|---|---|
+| `choice:2` | 1.9064 | valid |
+| `choice:3-5` | 1.7602 | valid |
+| `choice:6-10` | 1.0 | valid |
+| **`choice:11+`** | **0.1006** | **invalid** — Laya clamps to 0.5 and warns "Treat confidence from the affected entries as uncalibrated" (`laya/agent.py:485`) |
+| `noul:2` | 1.9834 | valid |
+| `score:3-5` | 1.2514 | valid |
+
+A temperature **below 1 sharpens** logits rather than softening them. At 0.1006 that is ~10×:
+Laya's own comment states "a 0.24 top probability is published as 0.99, so a caller gating on
+confidence is told a coin flip is a certainty."
+
+**TRADE-OFFS.** We lost the ability to distinguish a dividend from a buyback, which is a real
+taxonomy loss. In exchange, `event_type` confidence becomes a quantity we are entitled to
+report. The alternative — keeping 11 options and quoting ECE — would have meant publishing
+calibration numbers the upstream library explicitly says not to trust.
+
+**WHY.** The whole product rests on being able to say "I don't know, and here is how sure I am."
+A confidence the engine disclaims destroys that, silently.
+
+**REVERSIBILITY.** Reversible but not free: it is a decision-problem change, so answers recorded
+under v1 are not comparable to v2. `check_migration` reports the change explicitly.
+
+**FOLLOW-UP.** Even in the valid bucket, measured ECE on real NSE data is **0.182**, and in the
+0.6–0.73 confidence band accuracy is 20% against 63% stated confidence. Moving out of the
+broken bucket removed a known defect; it did not make Laya calibrated on finance text. A
+temperature refit on a Divya-specific dev set is the obvious next experiment.
+
+---
+
+## D-009 — 2026-09-28 — System-2 defaults to a 3B model, not 4B: 4B is 70–100× slower on the target box
+
+**DECISION.** Default `DIVYA_S2_MODEL` is `qwen2.5-coder:3b`. `qwen3:4b` is supported but not
+the default. No GPU path is assumed anywhere.
+
+**CONTEXT.** The target box is 7.5 GiB RAM / 4 GiB VRAM / 16 vCPU, and must hold System-1
+(2.8 GB RSS) and System-2 simultaneously.
+
+**EVIDENCE.** Warm end-to-end `/api/chat` latency, schema-constrained, Laya resident:
+
+| Model | Wall (3 calls) | Model's own `eval_duration` | Verdict |
+|---|---|---|---|
+| `qwen2.5-coder:3b` | 0.91 / 0.56 / 0.56 s | 0.32–0.36 s | usable |
+| `qwen3:4b` | 50.1 / 42.4 / 63.5 s | 1.3–2.2 s | **memory thrash** |
+
+The 4B model's *generation* is only 1.3–2.2 s. The other 40–60 s is paging. At that latency an
+arm-D figure would be meaningless, because the loop's cost would be dominated by a model that
+does not fit, not by the architecture under test.
+
+**TRADE-OFFS.** `qwen2.5-coder:3b` is code-specialised, and the System-2 task is structured JSON
+emission rather than coding. It does emit valid schema-constrained JSON, and it did drive a
+correct 4-turn loop with sensible escalation in an end-to-end run — but "a coder model reasons
+well about filings" is not a claim anyone should make on this evidence. `DIVYA_S2_MODEL` makes
+this swappable without touching the runtime.
+
+**WHY.** The architecture claim is about the *loop*, not the model. A model that does not fit in
+the memory budget invalidates the measurement.
+
+**REVERSIBILITY.** Fully reversible; the provider interface is the seam.
+
+**FOLLOW-UP.** Re-measure on a larger box before claiming anything about 4B-class models.
+
+---
+
+## D-010 — 2026-09-28 — Real NSE announcements are the evaluation set; synthetic is kept only for adversarial cases
+
+**DECISION.** The primary evaluation runs on **live NSE corporate announcements** labelled by
+NSE's own `desc` taxonomy. The synthetic dataset is retained for determinism and for
+prompt-injection cases, but its numbers are never quoted without the real ones beside them.
+
+**CONTEXT.** The user was right to challenge the synthetic-only approach, and the data confirmed
+it: Laya scores **0.733** on the synthetic clear stratum and **0.500** on real announcements.
+The synthetic set was flattering us by roughly 23 points.
+
+**EVIDENCE.** Verified by direct fetch 2026-09-28:
+- `https://www.nseindia.com/api/corporate-announcements?index=equities&from_date=…&to_date=…`
+  → HTTP 200, **14,805 records for Sept 2026**, **no cookies needed**, browser UA required.
+  Carries `desc` (104 human-curated classes), `attchmntText`, `attchmntFile`, `smIndustry`,
+  `hasXbrl`, `sm_isin`.
+- bhavcopy EOD zip → HTTP 200, 177,333 bytes, valid CSV.
+- NIFTY 50 constituents → HTTP 200.
+- **NSE historical price API → 503 on every path.** No free NSE time series.
+- **BSE → entirely unreachable** (archives do not resolve; API 403).
+- `yfinance` returns real Indian prices (RELIANCE.NS back to 1996) but Yahoo's ToS prohibits
+  automated collection. Development and testing only.
+
+**The distribution is itself the finding.** The six largest classes are process, not events:
+
+    Shareholders meeting 2668 · Trading Window 1858 · General Updates 1752
+    Analysts/Investor Meet 1700 · Copy of Newspaper 1415 · Updates 1035
+
+**77% of a real Indian announcement feed contains no corporate event at all.** A system that
+silently dropped them would look far better than it is; one that classified them would be
+confidently wrong. They are ingested, labelled `unresolved`, and reported as their own
+population. `Outcome of Board Meeting` (456, the largest event-bearing class) is also
+`unresolved`, because the text often does not state the outcome.
+
+**TRADE-OFFS.** Agreement with `desc` is agreement with the exchange's *filing* taxonomy, not
+with the truth about the market. Every report says so. And `attchmntText` is a one-line summary
+(median 154 characters), not the filing body — the full text is in a PDF, which this project
+does not yet parse. That is a real limitation of the current evaluation.
+
+**WHY.** The user is correct that a decision product must be trustworthy about real filings.
+Measuring only on authored text measures our ability to predict our own templates.
+
+**REVERSIBILITY.** Fully reversible. Both datasets are committed; the harness takes `--dataset`.
+
+**FOLLOW-UP.** Parse the attached PDFs for full filing text. That is the single biggest data
+improvement available and it is unblocked.
+
+---
+
+## D-011 — 2026-09-28 — Batching is not a performance lever on this hardware; record the negative result
+
+**DECISION.** Do not build batched System-1 inference into the runtime. Keep single-event calls.
+
+**CONTEXT.** `research/scripts/bench_resources.py` measured the free performance levers.
+
+**EVIDENCE.** `Router.predict_batch` across batch sizes 1→12, on 16 vCPU with Laya resident:
+
+| Batch | Total | Per item | Throughput |
+|---|---|---|---|
+| 1 | 1.943 s | 1.943 s | 0.51 items/s |
+| 4 | 7.054 s | **1.764 s** | **0.57 items/s** |
+| 12 | 22.217 s | 1.851 s | 0.54 items/s |
+
+**Best case 1.10× at batch size 4.** The reason is that torch already saturates all 16 threads
+on a single item, so there is no idle capacity for a batch to reclaim. Marginal cost per
+question is ~0.8 s, so questions are cheap relative to re-encoding a document — which is why the
+protocol puts a whole triage pass in one call.
+
+**Corrected earlier claim.** The 280 s previously reported as "cold load" was mostly a one-time
+checkpoint *download*. Load alone measured **6.6 s**. Both numbers are now reported separately
+in `research/results/bench_resources.json`.
+
+**UNMEASURED:** `onnxruntime` is not installed. Whether `laya[onnx]` export is faster on this
+box is unknown and is the obvious next experiment if throughput becomes binding.
+
+**WHY.** A negative result is worth more than a plausible-sounding optimisation. Recording "we
+tried batching, it is 1.1×, here is why" stops the next engineer from spending a day on it.
+
+**REVERSIBILITY.** Trivially reversible.
+
+**FOLLOW-UP.** Install `laya[onnx]` and measure. If it does not help, throughput on this
+hardware is what it is, and the honest answer is that the loop is not an interactive product.

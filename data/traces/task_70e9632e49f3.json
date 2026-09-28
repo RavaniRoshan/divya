@@ -1,0 +1,784 @@
+{
+  "metrics": {
+    "task_id": "task_70e9632e49f3",
+    "termination": "finished",
+    "turns": 3,
+    "system1_calls": 3,
+    "system1_failures": 0,
+    "system2_calls": 4,
+    "system2_failures": 0,
+    "system1_latency_ms": 14226.7,
+    "system2_latency_ms": 12872.3,
+    "prompt_tokens": 6129,
+    "completion_tokens": 131,
+    "repairs": 0,
+    "max_system1_confidence": 0.8096,
+    "disagreements": 0,
+    "degraded": []
+  },
+  "state": {
+    "task_id": "task_70e9632e49f3",
+    "protocol_version": "0.1.0",
+    "domain": "corporate_actions",
+    "objective": "Classify this Indian corporate disclosure: event type, materiality, and direction.",
+    "created_at": "2026-09-28T14:36:05.285+00:00",
+    "observations": [
+      {
+        "observation_id": "obs_52a34d761519",
+        "kind": "document",
+        "source_id": "cli:stdin",
+        "source_url": null,
+        "content": "Infosys Limited has informed the Exchange that a meeting of the Board of Directors will be held on 24 October 2024 at 10:00 a.m. IST to consider and approve the unaudited financial results for the quarter ended 30 September 2024. The intimation is filed under Regulation 29 of the SEBI (LODR) Regulations, 2015.",
+        "retrieved_at": "2026-09-28T14:36:05+00:00",
+        "published_at": null,
+        "is_simulated": false,
+        "content_hash": "86657a04f31947ea"
+      }
+    ],
+    "evidence_refs": [],
+    "turn_index": 3,
+    "questions_asked": [
+      "event_type",
+      "is_material",
+      "evidence_sufficiency",
+      "is_summary_only",
+      "numeric_disclosure_present"
+    ],
+    "requested_decisions": [
+      "event_type",
+      "is_material",
+      "evidence_sufficiency",
+      "is_summary_only",
+      "numeric_disclosure_present"
+    ],
+    "system1_records": [
+      {
+        "record_id": "s1_b86d13d8b573",
+        "turn_index": 0,
+        "decision_names": [
+          "event_type",
+          "is_material"
+        ],
+        "spec_name": "event_triage",
+        "spec_version": 2,
+        "protocol_version": "0.1.0",
+        "state_digest": "86657a04f31947ea",
+        "request": {
+          "spec": "event_triage",
+          "spec_version": 2,
+          "questions": {
+            "event_type": {
+              "type": "choice",
+              "instructions": "Choose the single category that best describes the main corporate event described in this document. If the document describes more than one event, choose the one that appears to be the subject of the filing rather than a passing mention.",
+              "criteria": {
+                "earnings_result": "Quarterly or annual financial results: revenue, profit, EPS, margins, or a comparison against prior periods or guidance.",
+                "capital_action": "A board action changing the company's capital position per share: declaration or increase of a dividend (final, interim, or a change in dividend policy), share buyback, bonus issue, rights issue, stock split, or subdivision of shares.",
+                "fundraise": "Raising new capital: an issue of shares, warrants, debt, or an IPO for a subsidiary.",
+                "m_and_a": "Acquisition, disposal, merger, demerger, joint venture, or sale of a subsidiary.",
+                "leadership_change": "Appointment, resignation, or retirement of a director, promoter, or key executive.",
+                "auditor_change": "Change of statutory auditor, or an auditor resignation with a qualification.",
+                "regulatory_action": "Action by a regulator, exchange, or court: penalty, show-cause notice, trading ban, listing suspension, or a legal proceeding.",
+                "credit_rating": "Change in a credit rating, outlook, or a rating agency action.",
+                "board_meeting": "Notice of a board meeting to consider results or a specific agenda item, with no results or decision stated yet.",
+                "other": "Any other corporate disclosure that does not fit the categories above."
+              }
+            },
+            "is_material": {
+              "type": "noul",
+              "instructions": "Decide whether this disclosure is material to a company following the stock: whether it could plausibly change what an informed investor would do or expect. Routine filings that restate information already public, or that require no action, are not material.",
+              "criteria": {
+                "false": "Routine, procedural, or already-public information: meeting-date reminders, statutory compliance filings, resignations of non-executive directors with no stated reason, or a dividend at the previously declared rate.",
+                "true": "New financial results, a change in capital, an acquisition, a regulatory action against the company, a going-concern or audit qualification, or any disclosure with a stated financial consequence not already known."
+              },
+              "labels": {
+                "false": "not material",
+                "true": "material"
+              }
+            }
+          },
+          "state_digest": "86657a04f31947ea",
+          "state_chars": 311
+        },
+        "raw_response": {
+          "model": "laya-rl-agent",
+          "answers": {
+            "event_type": {
+              "type": "choice",
+              "choice": "earnings_result",
+              "probabilities": {
+                "earnings_result": 0.6717,
+                "capital_action": 0.0005,
+                "fundraise": 0.0009,
+                "m_and_a": 0.0005,
+                "leadership_change": 0.0004,
+                "auditor_change": 0.0006,
+                "regulatory_action": 0.0004,
+                "credit_rating": 0.0003,
+                "board_meeting": 0.3216,
+                "other": 0.003
+              },
+              "confidence": 0.7061,
+              "answer_confidence": 0.6717,
+              "action": {
+                "act_probability": 1.0
+              }
+            },
+            "is_material": {
+              "type": "noul",
+              "noul": 0.544,
+              "confidence": 0.544,
+              "answer_confidence": 0.544,
+              "action": {
+                "act_probability": 1.0
+              }
+            }
+          },
+          "usage": {
+            "input_tokens": 491,
+            "output_tokens": 0
+          },
+          "routing": {
+            "model": "english",
+            "repo": "convaiinnovations/laya",
+            "reason": "English Latin text",
+            "detection": {
+              "script": "latin",
+              "script_profile": {
+                "latin": 1.0
+              },
+              "language": "en",
+              "is_english": true,
+              "language_undecided": false,
+              "diacritic_rate": 0.0,
+              "non_latin_fraction": 0.0,
+              "mixed_segment": null
+            },
+            "workflow": null
+          }
+        },
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "earnings_result",
+            "probabilities": {
+              "earnings_result": 0.6717,
+              "capital_action": 0.0005,
+              "fundraise": 0.0009,
+              "m_and_a": 0.0005,
+              "leadership_change": 0.0004,
+              "auditor_change": 0.0006,
+              "regulatory_action": 0.0004,
+              "credit_rating": 0.0003,
+              "board_meeting": 0.3216,
+              "other": 0.003
+            },
+            "confidence": 0.7061,
+            "answer_confidence": 0.6717,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.544,
+            "confidence": 0.544,
+            "answer_confidence": 0.544,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "checkpoint": "english",
+        "latency_ms": 11601.298380002845,
+        "error": null,
+        "created_at": "2026-09-28T14:36:28.564+00:00"
+      },
+      {
+        "record_id": "s1_5e95be67ddea",
+        "turn_index": 1,
+        "decision_names": [
+          "evidence_sufficiency",
+          "is_summary_only"
+        ],
+        "spec_name": "event_evidence",
+        "spec_version": 1,
+        "protocol_version": "0.1.0",
+        "state_digest": "86657a04f31947ea",
+        "request": {
+          "spec": "event_evidence",
+          "spec_version": 1,
+          "questions": {
+            "evidence_sufficiency": {
+              "type": "score",
+              "instructions": "Rate how completely this document states the facts needed to judge the event. A document that names the action but omits the figures, the counterparty, the effective date, or the conditions scores low.",
+              "criteria": [
+                "The document is a notice, an agenda, an excerpt, or a summary. The event is named but not described.",
+                "The event is described but at least one material fact is missing: a figure, a date, a counterparty, or a condition.",
+                "The event is described with its main facts, though some detail is deferred to an attachment or a follow-up filing.",
+                "The event is fully described with the figures, parties, dates, and conditions needed to judge it."
+              ]
+            },
+            "is_summary_only": {
+              "type": "noul",
+              "instructions": "Decide whether this document is a secondary account -- a news report, blog post, aggregator entry, or social media post describing a corporate event -- rather than the company's own disclosure or an exchange/regulator publication.",
+              "criteria": {
+                "false": "Primary: the company's own filing, an exchange or regulator publication, an audited financial statement, or a prepared investor presentation.",
+                "true": "Secondary: a news article, commentary, aggregator summary, or social post describing the event rather than constituting it."
+              },
+              "labels": {
+                "false": "primary source",
+                "true": "secondary or summary"
+              }
+            }
+          },
+          "state_digest": "86657a04f31947ea",
+          "state_chars": 311
+        },
+        "raw_response": {
+          "model": "laya-rl-agent",
+          "answers": {
+            "evidence_sufficiency": {
+              "type": "score",
+              "score": 1.479,
+              "legend": {
+                "0": "The document is a notice, an agenda, an excerpt, or a summary. The event is named but not described.",
+                "1": "The event is described but at least one material fact is missing: a figure, a date, a counterparty, or a condition.",
+                "2": "The event is described with its main facts, though some detail is deferred to an attachment or a follow-up filing.",
+                "3": "The event is fully described with the figures, parties, dates, and conditions needed to judge it."
+              },
+              "probabilities": {
+                "0": 0.0463,
+                "1": 0.5019,
+                "2": 0.3784,
+                "3": 0.0735
+              },
+              "confidence": 0.2442,
+              "answer_confidence": 0.5019,
+              "action": {
+                "act_probability": 1.0
+              }
+            },
+            "is_summary_only": {
+              "type": "noul",
+              "noul": 0.2315,
+              "confidence": 0.7685,
+              "answer_confidence": 0.7685,
+              "action": {
+                "act_probability": 1.0
+              }
+            }
+          },
+          "usage": {
+            "input_tokens": 417,
+            "output_tokens": 0
+          },
+          "routing": {
+            "model": "english",
+            "repo": "convaiinnovations/laya",
+            "reason": "English Latin text",
+            "detection": {
+              "script": "latin",
+              "script_profile": {
+                "latin": 1.0
+              },
+              "language": "en",
+              "is_english": true,
+              "language_undecided": false,
+              "diacritic_rate": 0.0,
+              "non_latin_fraction": 0.0,
+              "mixed_segment": null
+            },
+            "workflow": null
+          }
+        },
+        "answers": {
+          "evidence_sufficiency": {
+            "type": "score",
+            "score": 1.479,
+            "legend": {
+              "0": "The document is a notice, an agenda, an excerpt, or a summary. The event is named but not described.",
+              "1": "The event is described but at least one material fact is missing: a figure, a date, a counterparty, or a condition.",
+              "2": "The event is described with its main facts, though some detail is deferred to an attachment or a follow-up filing.",
+              "3": "The event is fully described with the figures, parties, dates, and conditions needed to judge it."
+            },
+            "probabilities": {
+              "0": 0.0463,
+              "1": 0.5019,
+              "2": 0.3784,
+              "3": 0.0735
+            },
+            "confidence": 0.2442,
+            "answer_confidence": 0.5019,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_summary_only": {
+            "type": "noul",
+            "noul": 0.2315,
+            "confidence": 0.7685,
+            "answer_confidence": 0.7685,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "checkpoint": "english",
+        "latency_ms": 1844.6197110024514,
+        "error": null,
+        "created_at": "2026-09-28T14:36:31.755+00:00"
+      },
+      {
+        "record_id": "s1_be13317c0459",
+        "turn_index": 2,
+        "decision_names": [
+          "numeric_disclosure_present"
+        ],
+        "spec_name": "event_evidence",
+        "spec_version": 1,
+        "protocol_version": "0.1.0",
+        "state_digest": "86657a04f31947ea",
+        "request": {
+          "spec": "event_evidence",
+          "spec_version": 1,
+          "questions": {
+            "numeric_disclosure_present": {
+              "type": "noul",
+              "instructions": "Decide whether this document states a specific numeric fact: a financial figure, a percentage, a share count, a price, a date, or a threshold.",
+              "criteria": {
+                "false": "No specific number. The document is qualitative, is a notice without figures, or refers to figures without stating them.",
+                "true": "At least one specific number is stated: a financial figure, percentage, share count, price, threshold, or dated schedule."
+              },
+              "labels": {
+                "false": "no numeric detail",
+                "true": "numeric detail present"
+              }
+            }
+          },
+          "state_digest": "86657a04f31947ea",
+          "state_chars": 311
+        },
+        "raw_response": {
+          "model": "laya-rl-agent",
+          "answers": {
+            "numeric_disclosure_present": {
+              "type": "noul",
+              "noul": 0.1904,
+              "confidence": 0.8096,
+              "answer_confidence": 0.8096,
+              "action": {
+                "act_probability": 1.0
+              }
+            }
+          },
+          "usage": {
+            "input_tokens": 172,
+            "output_tokens": 0
+          },
+          "routing": {
+            "model": "english",
+            "repo": "convaiinnovations/laya",
+            "reason": "English Latin text",
+            "detection": {
+              "script": "latin",
+              "script_profile": {
+                "latin": 1.0
+              },
+              "language": "en",
+              "is_english": true,
+              "language_undecided": false,
+              "diacritic_rate": 0.0,
+              "non_latin_fraction": 0.0,
+              "mixed_segment": null
+            },
+            "workflow": null
+          }
+        },
+        "answers": {
+          "numeric_disclosure_present": {
+            "type": "noul",
+            "noul": 0.1904,
+            "confidence": 0.8096,
+            "answer_confidence": 0.8096,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "checkpoint": "english",
+        "latency_ms": 780.8082370029297,
+        "error": null,
+        "created_at": "2026-09-28T14:36:33.708+00:00"
+      }
+    ],
+    "system2_records": [
+      {
+        "record_id": "s2_03e1fa197719",
+        "turn_index": 0,
+        "provider": "ollama",
+        "model": "qwen2.5-coder:3b",
+        "is_model": true,
+        "kind": "call_system1",
+        "decisions": [
+          "event_type",
+          "is_material"
+        ],
+        "conclusion": "",
+        "confidence": 0.0,
+        "rationale": "",
+        "latency_ms": 8905.010659000254,
+        "prompt_tokens": 1431,
+        "completion_tokens": 25,
+        "repaired": false,
+        "raw_response": "{\n  \"kind\": \"call_system1\",\n  \"decisions\": [\"event_type\", \"is_material\"]\n}",
+        "error": null,
+        "created_at": "2026-09-28T14:36:16.961+00:00"
+      },
+      {
+        "record_id": "s2_32383c6e4939",
+        "turn_index": 1,
+        "provider": "ollama",
+        "model": "qwen2.5-coder:3b",
+        "is_model": true,
+        "kind": "call_system1",
+        "decisions": [
+          "evidence_sufficiency",
+          "is_summary_only"
+        ],
+        "conclusion": "",
+        "confidence": 0.0,
+        "rationale": "",
+        "latency_ms": 1342.7664169939817,
+        "prompt_tokens": 1523,
+        "completion_tokens": 29,
+        "repaired": false,
+        "raw_response": "{\n  \"kind\": \"call_system1\",\n  \"decisions\": [\"evidence_sufficiency\", \"is_summary_only\"]\n}",
+        "error": null,
+        "created_at": "2026-09-28T14:36:29.910+00:00"
+      },
+      {
+        "record_id": "s2_874f3be688c6",
+        "turn_index": 2,
+        "provider": "ollama",
+        "model": "qwen2.5-coder:3b",
+        "is_model": true,
+        "kind": "call_system1",
+        "decisions": [
+          "numeric_disclosure_present"
+        ],
+        "conclusion": "",
+        "confidence": 0.0,
+        "rationale": "",
+        "latency_ms": 1171.865512005752,
+        "prompt_tokens": 1592,
+        "completion_tokens": 23,
+        "repaired": false,
+        "raw_response": "{\n  \"kind\": \"call_system1\",\n  \"decisions\": [\"numeric_disclosure_present\"]\n}",
+        "error": null,
+        "created_at": "2026-09-28T14:36:32.927+00:00"
+      },
+      {
+        "record_id": "s2_0efea2ed533f",
+        "turn_index": 3,
+        "provider": "ollama",
+        "model": "qwen2.5-coder:3b",
+        "is_model": true,
+        "kind": "finish",
+        "decisions": [],
+        "conclusion": "The event is a board meeting to consider and approve unaudited financial results for the quarter ended September 2024.",
+        "confidence": 0.8096,
+        "rationale": "",
+        "latency_ms": 1452.6233220021822,
+        "prompt_tokens": 1583,
+        "completion_tokens": 54,
+        "repaired": false,
+        "raw_response": "{\n  \"kind\": \"finish\",\n  \"conclusion\": \"The event is a board meeting to consider and approve unaudited financial results for the quarter ended September 2024.\",\n  \"confidence\": 0.8096\n}",
+        "error": null,
+        "created_at": "2026-09-28T14:36:35.162+00:00"
+      }
+    ],
+    "hypotheses": [],
+    "contradictions": [],
+    "disagreements": [],
+    "unresolved_questions": [],
+    "confidence": 0.8096,
+    "uncertainty": "none recorded",
+    "conclusion": "The event is a board meeting to consider and approve unaudited financial results for the quarter ended September 2024.",
+    "termination": "finished",
+    "termination_reason": "System-2 concluded",
+    "trace": [
+      {
+        "index": 0,
+        "kind": "add_observation",
+        "detail": {
+          "observation_id": "obs_52a34d761519",
+          "source_id": "cli:stdin",
+          "content_hash": "86657a04f31947ea",
+          "is_simulated": false,
+          "chars": 311
+        },
+        "at": "2026-09-28T14:36:05.285+00:00"
+      },
+      {
+        "index": 1,
+        "kind": "system2",
+        "detail": {
+          "record_id": "s2_03e1fa197719",
+          "turn_index": 0,
+          "provider": "ollama:qwen2.5-coder:3b",
+          "is_model": true,
+          "kind": "call_system1",
+          "decisions": [
+            "event_type",
+            "is_material"
+          ],
+          "confidence": 0.0,
+          "latency_ms": 8905.0,
+          "prompt_tokens": 1431,
+          "completion_tokens": 25,
+          "repaired": false,
+          "error": null
+        },
+        "at": "2026-09-28T14:36:16.961+00:00"
+      },
+      {
+        "index": 2,
+        "kind": "system1",
+        "detail": {
+          "record_id": "s1_b86d13d8b573",
+          "turn_index": 0,
+          "spec": "event_triage@2",
+          "decisions": [
+            "event_type",
+            "is_material"
+          ],
+          "checkpoint": "english",
+          "latency_ms": 11601.3,
+          "error": null,
+          "answers": {
+            "event_type": {
+              "type": "choice",
+              "choice": "earnings_result",
+              "probabilities": {
+                "earnings_result": 0.6717,
+                "capital_action": 0.0005,
+                "fundraise": 0.0009,
+                "m_and_a": 0.0005,
+                "leadership_change": 0.0004,
+                "auditor_change": 0.0006,
+                "regulatory_action": 0.0004,
+                "credit_rating": 0.0003,
+                "board_meeting": 0.3216,
+                "other": 0.003
+              },
+              "confidence": 0.7061,
+              "answer_confidence": 0.6717,
+              "action": {
+                "act_probability": 1.0
+              }
+            },
+            "is_material": {
+              "type": "noul",
+              "noul": 0.544,
+              "confidence": 0.544,
+              "answer_confidence": 0.544,
+              "action": {
+                "act_probability": 1.0
+              }
+            }
+          }
+        },
+        "at": "2026-09-28T14:36:28.566+00:00"
+      },
+      {
+        "index": 3,
+        "kind": "advance_turn",
+        "detail": {
+          "turn_index": 1
+        },
+        "at": "2026-09-28T14:36:28.566+00:00"
+      },
+      {
+        "index": 4,
+        "kind": "system2",
+        "detail": {
+          "record_id": "s2_32383c6e4939",
+          "turn_index": 1,
+          "provider": "ollama:qwen2.5-coder:3b",
+          "is_model": true,
+          "kind": "call_system1",
+          "decisions": [
+            "evidence_sufficiency",
+            "is_summary_only"
+          ],
+          "confidence": 0.0,
+          "latency_ms": 1342.8,
+          "prompt_tokens": 1523,
+          "completion_tokens": 29,
+          "repaired": false,
+          "error": null
+        },
+        "at": "2026-09-28T14:36:29.910+00:00"
+      },
+      {
+        "index": 5,
+        "kind": "system1",
+        "detail": {
+          "record_id": "s1_5e95be67ddea",
+          "turn_index": 1,
+          "spec": "event_evidence@1",
+          "decisions": [
+            "evidence_sufficiency",
+            "is_summary_only"
+          ],
+          "checkpoint": "english",
+          "latency_ms": 1844.6,
+          "error": null,
+          "answers": {
+            "evidence_sufficiency": {
+              "type": "score",
+              "score": 1.479,
+              "legend": {
+                "0": "The document is a notice, an agenda, an excerpt, or a summary. The event is named but not described.",
+                "1": "The event is described but at least one material fact is missing: a figure, a date, a counterparty, or a condition.",
+                "2": "The event is described with its main facts, though some detail is deferred to an attachment or a follow-up filing.",
+                "3": "The event is fully described with the figures, parties, dates, and conditions needed to judge it."
+              },
+              "probabilities": {
+                "0": 0.0463,
+                "1": 0.5019,
+                "2": 0.3784,
+                "3": 0.0735
+              },
+              "confidence": 0.2442,
+              "answer_confidence": 0.5019,
+              "action": {
+                "act_probability": 1.0
+              }
+            },
+            "is_summary_only": {
+              "type": "noul",
+              "noul": 0.2315,
+              "confidence": 0.7685,
+              "answer_confidence": 0.7685,
+              "action": {
+                "act_probability": 1.0
+              }
+            }
+          }
+        },
+        "at": "2026-09-28T14:36:31.755+00:00"
+      },
+      {
+        "index": 6,
+        "kind": "advance_turn",
+        "detail": {
+          "turn_index": 2
+        },
+        "at": "2026-09-28T14:36:31.755+00:00"
+      },
+      {
+        "index": 7,
+        "kind": "system2",
+        "detail": {
+          "record_id": "s2_874f3be688c6",
+          "turn_index": 2,
+          "provider": "ollama:qwen2.5-coder:3b",
+          "is_model": true,
+          "kind": "call_system1",
+          "decisions": [
+            "numeric_disclosure_present"
+          ],
+          "confidence": 0.0,
+          "latency_ms": 1171.9,
+          "prompt_tokens": 1592,
+          "completion_tokens": 23,
+          "repaired": false,
+          "error": null
+        },
+        "at": "2026-09-28T14:36:32.927+00:00"
+      },
+      {
+        "index": 8,
+        "kind": "system1",
+        "detail": {
+          "record_id": "s1_be13317c0459",
+          "turn_index": 2,
+          "spec": "event_evidence@1",
+          "decisions": [
+            "numeric_disclosure_present"
+          ],
+          "checkpoint": "english",
+          "latency_ms": 780.8,
+          "error": null,
+          "answers": {
+            "numeric_disclosure_present": {
+              "type": "noul",
+              "noul": 0.1904,
+              "confidence": 0.8096,
+              "answer_confidence": 0.8096,
+              "action": {
+                "act_probability": 1.0
+              }
+            }
+          }
+        },
+        "at": "2026-09-28T14:36:33.709+00:00"
+      },
+      {
+        "index": 9,
+        "kind": "advance_turn",
+        "detail": {
+          "turn_index": 3
+        },
+        "at": "2026-09-28T14:36:33.709+00:00"
+      },
+      {
+        "index": 10,
+        "kind": "system2",
+        "detail": {
+          "record_id": "s2_0efea2ed533f",
+          "turn_index": 3,
+          "provider": "ollama:qwen2.5-coder:3b",
+          "is_model": true,
+          "kind": "finish",
+          "decisions": [],
+          "confidence": 0.8096,
+          "latency_ms": 1452.6,
+          "prompt_tokens": 1583,
+          "completion_tokens": 54,
+          "repaired": false,
+          "error": null
+        },
+        "at": "2026-09-28T14:36:35.162+00:00"
+      },
+      {
+        "index": 11,
+        "kind": "outcome",
+        "detail": {
+          "confidence": 0.8096,
+          "conclusion": "The event is a board meeting to consider and approve unaudited financial results for the quarter ended September 2024."
+        },
+        "at": "2026-09-28T14:36:35.162+00:00"
+      },
+      {
+        "index": 12,
+        "kind": "terminate",
+        "detail": {
+          "status": "finished",
+          "reason": "System-2 concluded"
+        },
+        "at": "2026-09-28T14:36:35.162+00:00"
+      }
+    ],
+    "config": {
+      "max_turns": 4,
+      "min_confidence": 0.55,
+      "system2_timeout_s": 90.0,
+      "allow_escalation": true,
+      "fallback_to_heuristic": true
+    },
+    "errors": []
+  },
+  "trace_digest": "f9360af57b6fc5b2"
+}

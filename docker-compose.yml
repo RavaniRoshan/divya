@@ -1,0 +1,46 @@
+# UNVERIFIED-IN-THIS-ENV.
+#
+# This project was built on a machine with no docker binary, so this compose file has never been
+# run. It is authored to be correct and it is NOT claimed to work. The verified path is:
+#
+#     make setup && make check
+#
+# See docs/loop/DECISIONS.md D-002 and docs/loop/BLOCKERS.md B-001.
+
+services:
+  divya:
+    build: .
+    image: divya:0.1.0
+    container_name: divya
+    # No GPU. The whole design assumes CPU-only, and every latency figure in this repo was
+    # measured that way. A GPU would change them.
+    environment:
+      # Point at an Ollama host. On Linux, `host.docker.internal` needs
+      # `extra_hosts: ["host.docker.internal:host-gateway"]` (see below).
+      DIVYA_S2_PROVIDER: ${DIVYA_S2_PROVIDER:-ollama}
+      DIVYA_S2_BASE_URL: ${DIVYA_S2_BASE_URL:-http://host.docker.internal:11434}
+      DIVYA_S2_MODEL: ${DIVYA_S2_MODEL:-qwen2.5-coder:3b}
+      DIVYA_PROTOCOL_PATH: /app/models/questions.yaml
+      # Laya downloads its checkpoint into the HF cache on first use. Mount it so a restart
+      # does not pay the ~270 s download again.
+      HF_HOME: /cache/huggingface
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/store:/app/data/store
+      - ./data/traces:/app/data/traces
+      - ./evals/results:/app/evals/results
+      - hf-cache:/cache/huggingface
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # 7.5 GiB is the design target: ~2.8 GB for System-1, ~1.9 GB for a 3B System-2, the rest
+    # for the runtime. Raising this does not make the box faster; it only stops it OOMing.
+    deploy:
+      resources:
+        limits:
+          memory: 7g
+    restart: unless-stopped
+    command: ["python", "-m", "divya.cli", "doctor"]
+
+volumes:
+  hf-cache:

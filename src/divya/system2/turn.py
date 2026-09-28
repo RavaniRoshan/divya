@@ -115,8 +115,11 @@ Choose exactly one `kind`:
 - "call_system1": you need more evidence from System-1. List the decision names you need in
   `decisions`. Ask for the smallest number of decisions that would move you forward. Do not \
   request decisions whose answers you already have.
-- "finish": the evidence is sufficient. Set `conclusion` to your conclusion in one or two
-  sentences and `confidence` between 0 and 1.
+- "finish": you have already received System-1 answers in the shared state and they are
+  sufficient. Set `conclusion` to your conclusion in one or two sentences and `confidence`
+  between 0 and 1. You CANNOT answer from the filing text alone -- on your first turn you
+  have no System-1 results, so "finish" is only correct if System-1 results are already
+  present in the state.
 - "abstain": the evidence will not support a reliable conclusion, or the document does not \
   concern a corporate event. Set `conclusion` to the reason and `confidence` to 0.
 

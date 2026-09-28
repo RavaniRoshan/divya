@@ -368,10 +368,15 @@ def build_provider(kind: str | None = None, **kwargs: Any) -> System2Provider:
     import os
 
     kind = (kind or os.environ.get("DIVYA_S2_PROVIDER") or "ollama").strip().lower()
+    # Default model is 3b, not 4b, and that is a measurement rather than a preference.
+    # Warm end-to-end latency on the 16 vCPU / 7.5 GiB target box, with Laya resident
+    # (2.8 GB RSS): qwen2.5-coder:3b 0.56-0.91 s, qwen3:4b 42-64 s. The 4B model's own
+    # generation time is only 1.3-2.2 s; the rest is memory thrashing. At 4B the recurrent
+    # loop is unusable, which would make any arm-D latency figure meaningless.
     match kind:
         case "ollama":
             return OllamaProvider(
-                model=kwargs.get("model") or os.environ.get("DIVYA_S2_MODEL") or "qwen3:4b",
+                model=kwargs.get("model") or os.environ.get("DIVYA_S2_MODEL") or "qwen2.5-coder:3b",
                 base_url=kwargs.get("base_url")
                 or os.environ.get("DIVYA_S2_BASE_URL")
                 or "http://localhost:11434",
