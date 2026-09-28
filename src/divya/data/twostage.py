@@ -163,7 +163,11 @@ class TwoStageReader:
         answers, ms = self._run(summary, row)
         first_conf = _confidence_of(answers)
 
-        needs_more = first_conf is not None and first_conf < self.escalate_below
+        # `None` means System-1 produced no usable confidence at all. That is treated as
+        # "escalate": with no confidence there is no basis for skipping the document, and
+        # formatting a None into the reason string used to raise TypeError exactly in the
+        # path where a clear message mattered most.
+        needs_more = first_conf is None or first_conf < self.escalate_below
         if not needs_more:
             return TwoStageResult(
                 text=summary, text_source="summary", expanded=False,
@@ -173,7 +177,7 @@ class TwoStageReader:
                 reason=(
                     f"summary pass confident at {first_conf:.2f} "
                     f"(>= {self.escalate_below:.2f}); document not read"
-                ),
+                ),  # first_conf is not None here: None escalates
             )
 
         if not row.pdf_url:
@@ -182,7 +186,7 @@ class TwoStageReader:
                 escalate_below=self.escalate_below, first_confidence=first_conf,
                 decision_name=",".join(decisions), answers=answers, raw=summary,
                 summary_ms=ms,
-                reason=f"low confidence {first_conf:.2f} but no filing is available",
+                reason=f"low confidence {_fmt(first_conf)} but no filing is available",
             )
 
         ft = self._fetch(row)
@@ -192,7 +196,7 @@ class TwoStageReader:
                 escalate_below=self.escalate_below, first_confidence=first_conf,
                 decision_name=",".join(decisions), answers=answers, raw=summary,
                 summary_ms=ms,
-                reason=f"low confidence {first_conf:.2f} but the filing could not be read",
+                reason=f"low confidence {_fmt(first_conf)} but the filing could not be read",
             )
 
         answers2, ms2 = self._run(ft, row)
@@ -202,7 +206,7 @@ class TwoStageReader:
             decision_name=",".join(decisions), answers=answers2, raw=ft,
             summary_ms=ms, filing_ms=ms2,
             reason=(
-                f"summary pass only {first_conf:.2f} (< {self.escalate_below:.2f}); "
+                f"summary pass only {_fmt(first_conf)} (< {self.escalate_below:.2f}); "
                 f"re-read the filing"
             ),
         )
@@ -210,6 +214,11 @@ class TwoStageReader:
     def _fetch(self, row: EventRow) -> str:
         ft: FilingText = get_filing_text(row.seq_id, row.text, row.pdf_url)
         return ft.text if ft.used_pdf else ""
+
+
+def _fmt(c: float | None) -> str:
+    """Render a possibly-absent confidence without ever raising."""
+    return "n/a" if c is None else f"{c:.2f}"
 
 
 def _confidence_of(answers: dict[str, Any]) -> float | None:

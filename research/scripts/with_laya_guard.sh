@@ -50,5 +50,13 @@ fi
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
 export MKL_NUM_THREADS="${MKL_NUM_THREADS:-8}"
 
+# Put the repo's src on the path. Every Laya-bearing entry point lives there and none of the
+# launchers set it, so without this the guard hands you a confusing ModuleNotFoundError
+# instead of the run you asked for.
+if [ -z "${PYTHONPATH:-}" ]; then
+  HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  export PYTHONPATH="$(cd "$HERE/../.." && pwd)/src"
+fi
+
 echo "[guard] acquired; ${avail} MiB available, threads capped at ${OMP_NUM_THREADS}" >&2
 exec "$@"
