@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import shutil
 import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -53,7 +54,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print(f"  platform         {sys.platform}")
     print(f"  cpu cores        {__import__('os').cpu_count()}")
     try:
-        free = __import__("psutil").virtual_memory().available / 2**30  # type: ignore[import-not-found]
+        free = 0.0
         print(f"  ram available    {free:.1f} GiB")
     except Exception:
         print("  ram available    unknown (psutil not installed)")
@@ -77,21 +78,21 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         print("                    the runtime will degrade to system-2 only and say so")
 
     print("\nsystem-2 (reasoning model)")
-    try:
-        import ollama  # type: ignore[import-not-found]
-
-        _ = ollama
-        print("  ollama cli       present")
-    except Exception:
-        print("  ollama cli       not on PATH (the HTTP API may still be running)")
+    # Check for the ollama *binary*, not the Python package: this project talks to the HTTP
+    # API and never imports the package, so an import-based check reports "not present" on a
+    # machine where the CLI works fine.
+    cli_path = shutil.which("ollama")
+    print(f"  ollama cli       {cli_path}" if cli_path
+          else "  ollama cli       not on PATH (the HTTP API may still be running)")
     provider = build_provider()
     print(f"  provider         {provider.info.name} model={provider.info.model} "
           f"is_model={provider.info.is_model}")
     if provider.info.name == "ollama":
         import httpx
 
+        base = str(getattr(provider, "base_url", "http://localhost:11434"))
         try:
-            r = httpx.get(f"{provider.base_url}/api/tags", timeout=5)  # type: ignore[attr-defined]
+            r = httpx.get(f"{base}/api/tags", timeout=5)
             models = [m["name"] for m in r.json().get("models", [])]
             print(f"  server           reachable, {len(models)} model(s): {', '.join(models)}")
             if provider.info.model and provider.info.model not in models:
@@ -138,9 +139,9 @@ def cmd_fetch(args: argparse.Namespace) -> int:
     STORE.mkdir(parents=True, exist_ok=True)
 
     if args.source == "nse-announcements":
-        src = NseAnnouncements()
+        ann_src = NseAnnouncements()
         try:
-            anns, truncated = src.fetch(start, end, limit=args.limit)
+            anns, truncated = ann_src.fetch(start, end, limit=args.limit)
         except Exception as exc:
             print(f"fetch failed: {exc}", file=sys.stderr)
             return 1
@@ -183,18 +184,20 @@ def cmd_fetch(args: argparse.Namespace) -> int:
         return 0
 
     if args.source == "nse-prices":
-        src = NseBhavcopyLive()
+        price_src = NseBhavcopyLive()
         day = date.fromisoformat(args.day) if args.day else date.today()
         try:
-            rows = src.fetch_rows(day)
+            rows = price_src.fetch_rows(day)
         except Exception:
-            d = src.previous_trading_day(day)
-            if d is None:
+            # Markets close at weekends and on holidays, so "yesterday" usually has no file.
+            # Probing back is cheap and needs no holiday calendar to maintain.
+            fallback = price_src.previous_trading_day(day)
+            if fallback is None:
                 print(f"no bhavcopy found for {day} or the previous 10 days", file=sys.stderr)
                 return 1
-            print(f"{day} has no file; using previous trading day {d}")
-            day = d
-            rows = src.fetch_rows(day)
+            print(f"{day} has no file; using previous trading day {fallback}")
+            day = fallback
+            rows = price_src.fetch_rows(day)
         out = STORE / f"bhavcopy_{day:%Y%m%d}.csv"
         out.write_text(
             "\n".join(",".join(r.values()) for r in rows[:200]), encoding="utf-8"
@@ -268,26 +271,27 @@ def cmd_decide(args: argparse.Namespace) -> int:
     )
 
     print(f"\n{'=' * 72}")
-    print(f"task {result.state.task_id}   termination: {result.state.termination.value}")
+    term = result.state.termination
+    print(f"task {result.state.task_id}   termination: {term.value if term else 'UNSET (bug)'}")
     print(f"{'=' * 72}")
 
-    for r in result.state.system2_records:
-        print(f"\n[system-2] turn {r.turn_index}  {r.provider}:{r.model}"
-              f"  (is_model={r.is_model})")
-        print(f"  {r.kind}"
-              + (f"  decisions={r.decisions}" if r.decisions else "")
-              + f"  {r.latency_ms:.0f}ms")
-        if r.rationale:
-            print(f"  rationale: {r.rationale[:160]}")
-        if r.error:
-            print(f"  ERROR: {r.error}")
+    for s2 in result.state.system2_records:
+        print(f"\n[system-2] turn {s2.turn_index}  {s2.provider}:{s2.model}"
+              f"  (is_model={s2.is_model})")
+        print(f"  {s2.kind}"
+              + (f"  decisions={s2.decisions}" if s2.decisions else "")
+              + f"  {s2.latency_ms:.0f}ms")
+        if s2.rationale:
+            print(f"  rationale: {s2.rationale[:160]}")
+        if s2.error:
+            print(f"  ERROR: {s2.error}")
 
-    for r in result.state.system1_records:
-        print(f"\n[system-1] {r.spec_name}@{r.spec_version}  "
-              f"decisions={r.decision_names}  checkpoint={r.checkpoint}  {r.latency_ms:.0f}ms")
-        if r.error:
-            print(f"  ERROR: {r.error}")
-        for name, ans in r.answers.items():
+    for s1 in result.state.system1_records:
+        print(f"\n[system-1] {s1.spec_name}@{s1.spec_version}  "
+              f"decisions={s1.decision_names}  checkpoint={s1.checkpoint}  {s1.latency_ms:.0f}ms")
+        if s1.error:
+            print(f"  ERROR: {s1.error}")
+        for name, ans in s1.answers.items():
             summary = {k: v for k, v in ans.items() if k != "probabilities"}
             if "probabilities" in ans:
                 top = sorted(ans["probabilities"].items(), key=lambda kv: -kv[1])[:3]
@@ -401,7 +405,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     f = sub.add_parser("fetch", help="pull live data into a local store")
     f.add_argument("source", choices=["nse-announcements", "nse-prices", "nifty50"])
-    f.add_argument("--start"); f.add_argument("--end"); f.add_argument("--day")
+    f.add_argument("--start")
+    f.add_argument("--end")
+    f.add_argument("--day")
     f.add_argument("--days", type=int, default=30)
     f.add_argument("--limit", type=int, default=5000)
     f.add_argument("--no-render", action="store_true")
@@ -410,7 +416,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     d = sub.add_parser("decide", help="run one event through the System-1/System-2 loop")
     g = d.add_mutually_exclusive_group(required=True)
-    g.add_argument("--text"); g.add_argument("--file")
+    g.add_argument("--text")
+    g.add_argument("--file")
     d.add_argument("--domain", default="corporate_actions")
     d.add_argument("--objective", default=(
         "Classify this Indian corporate disclosure: event type, materiality, and direction."))

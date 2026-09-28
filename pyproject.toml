@@ -15,17 +15,22 @@ keywords = ["market-intelligence", "india", "equities", "agent", "calibration"]
 # Core runtime is deliberately light. `laya` pulls torch/transformers; keeping it in a
 # separate extra lets `pytest` run the protocol/runtime/eval layers on a box with no
 # Laya checkpoint installed, which is what CI and the degradation tests need.
+# Core must be enough to run the test suite, the CLI and the evaluation metrics from a
+# fresh clone. A clean-clone check on 2026-09-28 caught this being wrong: metrics needs
+# numpy and the terminal view needs rich, and neither was here, so `make setup && make test`
+# failed on a clean checkout while passing in a working directory.
 dependencies = [
     "pydantic>=2.0",
     "pyyaml>=6.0",
     "httpx>=0.27",
     "rich>=13.0",
+    "numpy>=1.24",
 ]
 
 [project.optional-dependencies]
 system1 = ["laya>=0.3.21"]
 system2 = ["httpx>=0.27"]
-eval = ["numpy>=1.24", "scikit-learn>=1.3"]
+eval = ["scikit-learn>=1.3"]
 terminal = ["textual>=0.60"]
 dev = [
     "pytest>=8.0",

@@ -51,7 +51,6 @@ def stratum_for(a) -> str:
     Strata are assigned before any model runs. Choosing them afterwards would make every
     hypothesis about the loop unfalsifiable.
     """
-    label = classify(a.desc)
     if not is_measurable(a.desc):
         return "unmapped_class"
     text = a.text

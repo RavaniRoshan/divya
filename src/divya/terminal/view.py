@@ -29,8 +29,9 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from divya.data.nse_taxonomy import UNRESOLVED
 from divya.runtime.loop import LoopResult
-from divya.runtime.state import MAX_OBSERVATION_AGE_S, SharedState
+from divya.runtime.state import MAX_OBSERVATION_AGE_S, Observation, SharedState
 
 SPARK = {0: "·", 1: "▁", 2: "▂", 3: "▃", 4: "▄", 5: "▅", 6: "▆", 7: "▇", 8: "█"}
 
@@ -48,7 +49,7 @@ def _confidence_bar(p: float, width: int = 20) -> Text:
     return Text("█" * filled + "░" * (width - filled), style=colour)
 
 
-def _freshness(obs) -> Text:
+def _freshness(obs: Observation) -> Text:
     age = obs.age_seconds()
     if obs.is_simulated:
         return Text("SIMULATED — not market data", style="bold magenta")
@@ -261,7 +262,7 @@ def render_event_stream(items: list[dict[str, Any]], console: Console | None = N
     c = console or Console()
     t = Table(box=None, expand=True, header_style="bold", pad_edge=False)
     t.add_column("when", style="dim", no_wrap=True)
-    t.add_column("symbol", bold=True, no_wrap=True)
+    t.add_column("symbol", style="bold", no_wrap=True)
     t.add_column("nse class", style="cyan", no_wrap=True)
     t.add_column("→ our label", style="dim", no_wrap=True)
     t.add_column("text", overflow="ellipsis", max_width=52)
