@@ -421,7 +421,8 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("--domain", default="corporate_actions")
     d.add_argument("--objective", default=(
         "Classify this Indian corporate disclosure: event type, materiality, and direction."))
-    d.add_argument("--source-id"); d.add_argument("--source-url")
+    d.add_argument("--source-id")
+    d.add_argument("--source-url")
     d.add_argument("--max-turns", type=int, default=4)
     d.add_argument("--min-confidence", type=float, default=0.55)
     d.add_argument("--no-escalation", action="store_true")
