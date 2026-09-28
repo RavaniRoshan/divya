@@ -93,6 +93,20 @@ divya protocol show
 divya protocol diff --other path/to/older/questions.yaml
 ```
 
+### Models
+
+One System-1 checkpoint and one System-2 model. That is the whole requirement:
+
+```bash
+ollama pull qwen2.5-coder:3b     # System-2 (~1.9 GB); the first `divya decide --mode loop` pulls it
+# Laya's `english` checkpoint (~248 MB) downloads automatically on first System-1 use.
+```
+
+A 4B model was measured and **deleted**, not kept: 42–64 s warm against this 0.56–0.91 s, with
+only 1.3–2.2 s of that being generation (memory thrash — see DECISIONS D-009/D-014). If
+`DIVYA_S2_MODEL` names something that is not pulled, `divya doctor` says so rather than letting
+it fail mysteriously.
+
 ### Data defaults
 
 The shipped default is **fixture data**, and every fixture record is stamped `is_simulated=True`

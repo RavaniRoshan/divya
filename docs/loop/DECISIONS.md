@@ -490,3 +490,35 @@ against evidence rather than inertia.
 
 **FOLLOW-UP.** Revisit only if (a) a stronger System-2 becomes runnable on this hardware class,
 or (b) the `other`-attractor fix materially changes the picture.
+
+---
+
+## D-014 — 2026-09-28 — One model per role; a superseded model gets deleted, not kept "just in case"
+
+**DECISION.** Exactly one System-1 checkpoint and one System-2 model are kept. Any model that a
+measurement has ruled out is deleted, and any package installed outside `pyproject.toml` and
+imported by nothing is uninstalled.
+
+**CONTEXT.** During the sizing experiment I pulled a second reasoning model to compare, plus a
+research agent installed `yfinance`/`pyarrow` to test a data source. All of it stayed on disk
+after the question it answered. That is ~2.7 GB of nothing.
+
+**REMOVED.**
+- `qwen3:4b` (2.5 GB) — D-009 measured it at 42–64 s warm against `qwen2.5-coder:3b`'s
+  0.56–0.91 s, with only 1.3–2.2 s of that being generation. The rest was memory thrash. It is
+  the *documented reason* the default is 3B; keeping it contradicts the project's own finding.
+- `yfinance` + `pyarrow` + `curl_cffi` (~195 MB) — installed by a research probe to verify a
+  data source. Not in `pyproject.toml`, imported by no product code. Removing them makes the
+  working venv match what a clean clone produces, which is the point of having a lockfile story.
+
+**KEPT.** `qwen2.5-coder:3b` (1.9 GB) — the default System-2. Laya `english` (248 MB) — the only
+System-1 checkpoint ever fetched; Laya's router downloads on demand and only the english one was
+ever requested, so `multilingual` and `typed-decisions` were never pulled.
+
+**RULE going forward.** A model earns its place by being used. If an experiment needs a second
+model, it is deleted when the experiment ends unless the result changed the default. Documented
+here because "we might need it later" is how a research box quietly becomes 40 GB.
+
+**REVERSIBILITY.** Fully reversible — `ollama pull qwen3:4b` restores it in minutes. Nothing in
+the code references a model that is no longer present; `divya doctor` warns when the configured
+model is not pulled, so a missing one is diagnosed rather than mysterious.
