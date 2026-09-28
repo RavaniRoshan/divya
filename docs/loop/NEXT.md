@@ -97,3 +97,18 @@ Recorded so they are not lost, in severity order. `docs/loop/REVIEW.md` is the f
 - **A dev/test split and a recorded seed are mandated in `EVALS.md` and not implemented.** The
   real dataset is a single unshuffled pool. For a comparison like this it did not change the
   result, but the discipline is stated and not enforced.
+
+---
+
+## `[x]` DONE — the conversational surface and dynamic workspaces
+
+`docs/architecture/FRONTEND.md` records the verified Space UI stack, the install commands, the
+two upstream defects worked around, and what the UI deliberately refuses to render. Verified in
+a real browser: idle → market workspace (17 rows) → follow-up (investigation workspace, entity
+preserved), zero console errors, 7/7 Playwright interaction tests against the live stack.
+
+## `[~]` IN_PROGRESS — re-run E-009 on full filing text
+
+Running. 107 of 120 items upgraded to real filing text, 25.3× more text than the summaries the
+headline result was measured on. **Every number in the headline table describes the system
+reading one-line summaries**, which is the largest caveat on that result.

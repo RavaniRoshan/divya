@@ -693,3 +693,83 @@ deliberately rather than by accident"* when the fix landed.
 **STATED PLAINLY: this is not a security audit, and no claim is made that the system is secure.**
 It is a suite of 43 specific attacks, 7 of which ran against the real engine and one of which
 found a real hole. An adaptive adversary who reads `sanitize.py` will find a gap.
+
+---
+
+## D-019 — 2026-09-28 — Space UI is the frontend foundation, and the data grid is deliberately not used
+
+**DECISION.** Build the web frontend on Space UI. Build the event stream on Space UI's `table`
+primitive rather than its composite `data-grid`. Remove `data-grid` from the tree.
+
+**CONTEXT.** The brief requires Space UI as the foundation and forbids guessing the stack.
+
+**STACK VERIFIED, NOT ASSUMED.** A research agent fetched spaceui.one's own JS chunks and
+recovered the inventory. Space UI is a **shadcn-compatible registry at
+`https://www.spaceui.one/r/{name}.json`** with **252 items** — 60+ primitives, 60+ composites,
+50+ hooks, plus `lib-base-ui`. There is **no `spaceui` npm package**; `spaceui`,
+`@space-ui/react` and `@spaceui/react` all 404. There is no index endpoint —
+`/r/registry.json` returns a Next.js 404 page with HTTP 200.
+
+Confirmed and installed: **React 19.2.8 · Next.js 16.3.6 · Tailwind v4 (CSS-first) ·
+`@base-ui/react` ^1.8.0 · `motion` 13.4.4**. Note it is `@base-ui/react`, **not**
+`@base-ui-components/react`. Install is
+`pnpm dlx shadcn@latest init https://www.spaceui.one/r/lib-style.json` then
+`pnpm dlx shadcn@latest add @spaceui/primitives-table --yes --overwrite` — the namespace is
+doubled-prefix, and Space UI's own docs showing `@spaceui/dialog` are wrong.
+
+**TWO UPSTREAM DEFECTS FOUND, BOTH WORKED AROUND.**
+
+1. `lib-style.json` emits `--ring: var(--ring)` inside `@theme inline`, which shadcn's base
+   layer then `@apply`s as `outline-ring/50`. **Every page 500s on a clean install.** Fixed to
+   `--color-ring: var(--ring)`. Anyone installing Space UI hits this.
+2. `components-spaceui-data-grid` depends on `@tanstack/react-table` and the registry resolves
+   **v9** — a full rewrite (`useTable`, feature-based `createColumnHelper`, `flexRender`). The
+   component is written against v8 and produces 8 type errors on import.
+
+**WHY THE DATA GRID IS NOT USED.** Writing a correct integration against a table API this
+project has not verified would mean shipping code nobody could check. The event stream uses
+Space UI's own `table` primitive — a verified component in the same design system — which gives
+a sticky header, tabular numerals, dense rows and sort affordances. **Given up:** column resize,
+column pinning, server pagination. **Kept:** everything a 200-row feed needs. The trade-off and
+the condition under which it stops being right are written into the component's docstring, not
+just here. The broken component was deleted rather than left in the tree.
+
+**REVERSIBILITY.** Reversible. Swapping the table primitive for a working grid is a single
+component's worth of work and no protocol change.
+
+**FOLLOW-UP.** If a registry update fixes the v9 incompatibility, re-evaluate — a virtualised
+grid matters at terminal row counts and not yet here.
+
+---
+
+## D-020 — 2026-09-28 — The language model emits typed UI intents and never renders
+
+**DECISION.** System-2 may choose *which* workspace is appropriate. It may not choose what the
+workspace looks like, and it emits no code. The intent enum is closed.
+
+**CONTEXT.** The brief requires a conversational control surface and dynamic workspaces, and
+warns against the model emitting arbitrary frontend code.
+
+**DESIGN.** `src/divya/runtime/intents.py` defines a closed `WorkspaceKind` enum mapped from the
+prescribed intents (`SHOW_COMPANY`, `SHOW_COMPARISON`, `SHOW_EVENT_STREAM`, `SHOW_SCREEN`,
+`SHOW_FILING`, `SHOW_TIMELINE`, `SHOW_FINANCIALS`, `SHOW_DECISION_TRACE`, `SHOW_EVIDENCE`,
+`SHOW_ALERTS`, plus investigation and event). `src/lib/divya-types.ts` mirrors it as a
+TypeScript discriminated union, so the frontend **cannot render an intent outside the union** —
+it is a type-system boundary, not a runtime lookup.
+
+**WHY THIS IS A SECURITY BOUNDARY, NOT A STYLE CHOICE.** Document text is attacker-influenced,
+and the red team already demonstrated a working prompt injection against the real engine. If
+the model's output selected a component or a route, that text would be one prompt away from
+choosing what the user sees. A closed enum makes the view layer unreachable from document
+content.
+
+**CONSEQUENCE FOR BUILDERS.** Each intent's payload is built by a human-written constructor
+(`intents.company()`, `intents.comparison()`, …) that returns a typed `EMPTY` note rather than
+an unrenderable empty workspace. An intent that cannot be filled is a result the frontend can
+display, not a bug report.
+
+**WHAT THE UI REFUSES TO DO**, each a deliberate and previously-wrong choice:
+- undecided events sort **last**, not first — an unjudged event is not top priority;
+- no number renders without its retrieval time — freshness travels with the data;
+- the reasoning model's prose is never displayed as a confidence — confidence comes from the
+  typed engine or not at all.
