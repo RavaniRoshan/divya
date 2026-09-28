@@ -168,6 +168,8 @@ class ArmRunner:
         min_confidence: float = 0.55,
         d_max_turns: int = 4,
         c_samples: int = 1,
+        routed: bool = False,
+        gate_confidence: float = 0.70,
     ) -> None:
         self.arm = arm
         self.system1 = system1
@@ -176,6 +178,37 @@ class ArmRunner:
         self.min_confidence = min_confidence
         self.d_max_turns = d_max_turns
         self.c_samples = c_samples
+        self.gate_confidence = gate_confidence
+        #: Use hierarchical routing for arm A. Kept behind a flag so the flat and routed
+        #: results are directly comparable in the same report rather than in different ones.
+        self.routed = routed
+
+    def _arm_a_routed(self, item: Item) -> dict[str, Any]:
+        """Arm A with the decision protocol routed: gate first, then only what is left open."""
+        from divya.protocol.routing import RoutedDecider
+
+        s1 = self.system1
+        decider = RoutedDecider(system1=s1, gate_confidence=self.gate_confidence)
+        t0 = time.perf_counter()
+        res = decider.decide(item.content)
+        elapsed = (time.perf_counter() - t0) * 1000
+        resolved = res.resolved_by.get("event_type")
+        return {
+            "answers": res.answers,
+            "system1_calls": len(res.stages),
+            "system1_failures": 0,
+            "system2_calls": 0,
+            "system2_failures": 0,
+            "termination": "routed",
+            "terminated_ok": True,
+            "abstained": False,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "s1_ms": round(elapsed, 1),
+            "s2_ms": 0.0,
+            "routed": res.as_dict(),
+            "event_type_resolved_by": resolved,
+        }
 
     def _observations(self, item: Item) -> list[Observation]:
         return [
@@ -334,6 +367,8 @@ class ArmRunner:
             "s1_ms": round(sum(r.latency_ms for r in s1_recs), 1),
             "s2_ms": round(sum(r.latency_ms for r in s2_recs), 1),
             "c_samples": self.c_samples,
+            "routed_arm_a": self.routed,
+            "gate_confidence": self.gate_confidence,
         }
 
     def _majority_vote(self, runs: list[LoopResult]) -> dict[str, Any]:
@@ -638,6 +673,10 @@ async def run_eval(args: argparse.Namespace) -> dict[str, Any]:
             min_confidence=args.min_confidence,
             d_max_turns=args.max_turns,
             c_samples=args.c_samples,
+            # getattr, not attribute access: callers that build a minimal Namespace (the
+            # harness tests do) should not have to know about every flag this function grows.
+            routed=getattr(args, "routed", False),
+            gate_confidence=getattr(args, "gate_confidence", 0.70),
         )
         recs: list[dict[str, Any]] = []
         t0 = time.perf_counter()
@@ -723,6 +762,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--strata", nargs="*", default=None)
     ap.add_argument("--min-confidence", type=float, default=0.55)
     ap.add_argument("--max-turns", type=int, default=4)
+    ap.add_argument("--routed", action="store_true",
+                    help="use hierarchical routing for arm A (gate first, then only what is open)")
+    ap.add_argument("--gate-confidence", type=float, default=0.70,
+                    help="below this the gate does not resolve and the choice head decides")
     ap.add_argument("--c-samples", type=int, default=1,
                     help="self-consistency repeats for arm C; controls for sample count")
     ap.add_argument("--progress-every", type=int, default=10)

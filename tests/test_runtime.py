@@ -427,8 +427,11 @@ def test_system1_only_makes_exactly_one_call_and_no_reasoning_model():
     assert res.metrics()["prompt_tokens"] == 0
     # Only tier-1 decisions, so the escalation targets are never paid for. Protocol v3 added
     # `event_type_determinable`, which gates the classification head, so it is in the set now.
+    # Protocol v4 added `transfers_a_business`, the binary gate that separates the three
+    # vocabulary-sharing classes (see DECISIONS D-024/D-025).
     assert set(s1.calls[0]) == {
-        "event_type_determinable", "event_type", "is_material", "materiality", "direction",
+        "transfers_a_business", "event_type_determinable", "event_type",
+        "is_material", "materiality", "direction",
     }
 
 
