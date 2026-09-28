@@ -45,6 +45,19 @@ TRACES = Path("data/traces")
 # ---------------------------------------------------------------------------
 
 
+def _age_seconds(ts: str | None) -> float | None:
+    """Numeric age in seconds, or None. The display form is never compared to a threshold."""
+    if not ts:
+        return None
+    try:
+        t = datetime.fromisoformat(ts)
+    except ValueError:
+        return None
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=UTC)
+    return (datetime.now(UTC) - t).total_seconds()
+
+
 def _available_ram_gib() -> float:
     """Available RAM in GiB, or -1.0 if it cannot be read.
 
@@ -239,6 +252,64 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
+def cmd_terminal(args: argparse.Namespace) -> int:
+    """Launch the TUI. Imported lazily so the CLI stays fast and headless-friendly."""
+    from divya.terminal.app import main as terminal_main
+
+    return terminal_main(store_path=args.db, provider_kind=args.mode)
+
+
+def cmd_index(args: argparse.Namespace) -> int:
+    from divya.data.store import Store, ingest_nse
+
+    store = Store(args.db) if args.db else Store()
+    end = date.fromisoformat(args.end) if args.end else date.today()
+    start = date.fromisoformat(args.start) if args.start else end - timedelta(days=args.days)
+    try:
+        summary = ingest_nse(store, str(start), str(end), limit=args.limit)
+    except Exception as exc:
+        print(f"index failed: {exc}", file=sys.stderr)
+        return 1
+    print(f"indexed {summary['fetched']} announcements from NSE "
+          f"({start} .. {end}) into {store.path}")
+    print(f"  new rows      {summary['inserted']}")
+    print(f"  measurable    {summary['measurable']}  (map to a scorable event type)")
+    if summary["truncated"]:
+        print("  WARNING: response hit the record cap; narrow the window", file=sys.stderr)
+    print(f"  store now     {store.stats()}")
+    print(f"\n  open the terminal with:  divya terminal --db {store.path}")
+    return 0
+
+
+def cmd_status(args: argparse.Namespace) -> int:
+    from divya.data.store import Store
+
+    store = Store(args.db) if args.db else Store()
+    s = store.stats()
+    last = store.last_retrieved()
+    age = _age_seconds(last)
+    fresh = (
+        f"{age:.0f}s ago" if age is not None and age < 7 * 86400
+        else (f"STALE — {last}" if last else "NO DATA")
+    )
+    print(f"store   {store.path}")
+    print(f"  events      {s['events']}   symbols {s['symbols']}   measurable {s['measurable']}")
+    print(f"  simulated   {s['simulated']}")
+    print(f"  decisions   {s['decisions']}   runs {s['runs']}")
+    print(f"  last fetch  {fresh}")
+    print(f"  laya        {'available' if LayaSystem1().is_available() else 'NOT INSTALLED'}")
+    try:
+        info = build_provider().info
+        print(f"  system-2    {info.name}:{info.model} (is_model={info.is_model})")
+    except Exception as exc:
+        print(f"  system-2    unavailable ({type(exc).__name__})")
+    from divya.protocol.loader import load_protocol
+
+    p = load_protocol()
+    print(f"  protocol    {p.protocol_version}  specs: {', '.join(p.names)}")
+    return 0
+
+
 def _resolve_text(args: argparse.Namespace) -> str:
     if args.file:
         return Path(args.file).read_text(encoding="utf-8")
@@ -425,6 +496,25 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("doctor", help="check the environment and report what works").set_defaults(
         func=cmd_doctor
     )
+
+    t = sub.add_parser("terminal", help="launch the keyboard-first terminal (TUI)")
+    t.add_argument("--db", default=None, help="sqlite path (default data/store/divya.db)")
+    t.add_argument("--mode", choices=["system1", "loop"], default="system1",
+                   help="which runtime a keystroke-triggered decision uses. system1 (default) "
+                        "is what the measurement supports; see DECISIONS D-012.")
+    t.set_defaults(func=cmd_terminal)
+
+    ix = sub.add_parser("index", help="ingest NSE announcements into the local store")
+    ix.add_argument("--start", default=None)
+    ix.add_argument("--end", default=None)
+    ix.add_argument("--days", type=int, default=7)
+    ix.add_argument("--limit", type=int, default=5000)
+    ix.add_argument("--db", default=None)
+    ix.set_defaults(func=cmd_index)
+
+    st = sub.add_parser("status", help="store statistics, freshness, and versions")
+    st.add_argument("--db", default=None)
+    st.set_defaults(func=cmd_status)
 
     f = sub.add_parser("fetch", help="pull live data into a local store")
     f.add_argument("source", choices=["nse-announcements", "nse-prices", "nifty50"])
