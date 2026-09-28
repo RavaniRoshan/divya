@@ -126,7 +126,8 @@ Python 3.12.3, 2026-09-28.
 | 9 | Calibration, mid band (0.60–0.67) | 5 | 0.200 accuracy at 0.627 stated confidence | same |
 | 10 | Calibration, high band (0.93–1.00) | 7 | 1.000 accuracy at 0.995 stated confidence | same |
 | 11 | Checkpoint `choice:11+` temperature | — | **0.1006 — invalid, confidence uncalibrated** | `rl_agent_config.json` |
-| 12 | **A/B/C/D on real NSE** | 120 | **A 0.558 · B 0.000 · C 0.558 · D 0.508**; D abstains 75.8% | `evals/results/real_eval.json` |
+| 12 | **A/B/C/D on real NSE (summaries)** | 120 | **A 0.558 · B 0.000 · C 0.558 · D 0.508**; D abstains 75.8% | `evals/results/real_eval.json` |
+| 12b | **A/B/C/D on real NSE (FULL FILING TEXT, 25.3x more)** | 120 | **A 0.475 · B 0.000 · C 0.475 · D 0.142** | `evals/results/real_eval_filings.json` |
 | 13 | D vs C, p95 latency | 120 | 40.4 s vs 19.0 s; arm A 4.7 s | same |
 | 14 | Per-class F1 (arm A) | 120 | credit_rating 0.94, leadership_change 0.88, m_and_a 0.67, other 0.43, **capital_action 0.00, regulatory_action 0.00** | same |
 | 15 | `other` precision (arm A / arm D) | 120 | **0.294** (TP 15, FP 36) / 0.342 (TP 14, FP 27) | same |
@@ -141,6 +142,11 @@ optimistic; every conclusion in this project rests on row 12.
 
 - Row 8 is agreement with NSE's taxonomy, not correctness about the market.
 - Rows 7 and 8 must never appear without each other.
+- **Row 12 measured one-line summaries. Row 12b is the same run on real filing text.** The
+  aggregate accuracy *falls* (0.558 → 0.475) but three classes come off zero
+  (`capital_action` 0.00 → 0.39, `regulatory_action` 0.00 → 0.30, `earnings_result` 0.33 → 0.80)
+  while one regresses badly (`m_and_a` 0.67 → 0.13). Latency rises 12×. **Row 12 must not be
+  quoted without row 12b beside it.**
 - Row 11 means any confidence from a >10-option `choice` question is unusable. The protocol
   loader now refuses to load one.
 - No row in this table supports the claim that the recurrent loop is better. That claim is

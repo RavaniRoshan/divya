@@ -826,3 +826,63 @@ Decisions recorded under v2 carry `spec=event_triage@2` and are distinguishable.
 
 **FOLLOW-UP.** Re-run E-009 on v3 against the same 120 items and the same labels. The
 comparison is paired, so any movement is attributable to the protocol change and nothing else.
+
+---
+
+## D-022 — 2026-09-28 — Full filing text fixes the broken classes and breaks one; the loop collapses
+
+**DECISION.** Report the result in full, including the per-class detail, and do not ship a
+single headline number for it.
+
+**RESULT.** The identical A/B/C/D run on the same 120 filings, same labels, same protocol
+(v2), with the *only* difference being that 107 of 120 items now carry the real PDF text
+instead of a one-line summary — **25.3× more text**.
+
+| arm | accuracy (summary → filing) | Δ | ECE | AURC | p95 latency |
+|---|---|---|---|---|---|
+| A System-1 alone | 0.558 → **0.475** | **−0.083** | 0.096 → 0.141 | 0.240 → 0.356 | 4.7 s → **57.7 s** |
+| C System-2 → System-1 | 0.558 → 0.475 | −0.083 | 0.096 → 0.141 | 0.240 → 0.356 | 19.0 s → 48.8 s |
+| D recurrent | 0.508 → **0.142** | **−0.367** | 0.080 → 0.058 | 0.260 → **0.649** | 40.4 s → **90.0 s** |
+
+**The aggregate says accuracy fell 8 points. The per-class table says something else entirely:**
+
+| class | n | F1 summary → filing | |
+|---|---|---|---|
+| earnings_result | 4 | 0.33 → **0.80** | fixed |
+| capital_action | 13 | **0.00 → 0.39** | **fixed from zero** |
+| regulatory_action | 17 | **0.00 → 0.30** | **fixed from zero** |
+| m_and_a | 14 | 0.67 → **0.13** | **badly regressed** |
+| leadership_change | 43 | 0.88 → 0.70 | regressed |
+| credit_rating | 8 | 0.94 → 0.94 | unchanged |
+
+**The three classes that were structurally broken now work.** Two of them went from *exactly
+zero* to a usable score, because the summary omitted the figures and the subject that identify
+the event — which is exactly the mechanism `other` was exploiting. That is the single largest
+quality movement in the whole project.
+
+**One class broke badly**: `m_and_a` 0.67 → 0.13. On real acquisition filings the engine now
+has enough text to be confidently wrong, where on summaries it was falling through to the
+correct answer by accident. A 14-item class moving 0.67 → 0.13 costs more aggregate accuracy
+than three classes moving off zero gains.
+
+**AND THE LOOP STOPS WORKING AT ALL.** Arm D falls to **0.142** with AURC 0.649 on real
+documents, against 0.508 on summaries. The recurrent loop was already the worst arm; with
+25× more text per document it becomes unusable, and its p95 crosses 90 seconds. **The negative
+result on the loop is not an artefact of short documents — it is worse on real ones.**
+
+**CONSEQUENCES, STATED PLAINLY.**
+
+1. The headline 0.558 in `STATUS.md` and the README **describes a system reading one-line
+   summaries.** That number should not be quoted without this beside it. It has been added to
+   `EVALS.md` and flagged in both.
+2. **Latency is the binding constraint, not accuracy.** 4.7 s → 57.7 s for one item is the price
+   of the full text, and it is 12×. Anything interactive needs a length budget or a two-stage
+   read (classify on the summary, then re-read the filing for the ambiguous minority) — the
+   second is the obvious next experiment and is *not* built.
+3. **The `m_and_a` regression must be diagnosed before v3 ships.** It may be a real limitation,
+   or it may be the same catch-all problem reappearing. Both are consistent with the data.
+4. Neither this nor the previous run used **protocol v3**, because the run began before the
+   change. D-021 is still unvalidated.
+
+**COST OF KNOWING.** This run took **2 h 35 m** on 16 vCPU against summaries' ~25 m. The
+information is worth it and it is not cheap; any further full-text run should be a subset.

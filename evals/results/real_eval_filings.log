@@ -27,3 +27,11 @@
   D: 40/120 (1357s)
   D: 60/120 (1701s)
   D: 80/120 (2134s)
+  D: 100/120 (3261s)
+  D: 120/120 (3566s)
+[arm A] acc=0.475 macroF1=0.473 ECE=0.141 AURC=0.356 p95=57693ms
+ERROR: arm B produced NO event_type answer on any of 120 items. Terminations: ['error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error', 'error']. Its 0.000 accuracy is a FAILED ARM, not a measurement of the architecture.
+[arm B] acc=0.000 macroF1=0.000 ECE=0.000 AURC=1.000 p95=40326ms
+[arm C] acc=0.475 macroF1=0.473 ECE=0.141 AURC=0.356 p95=48763ms
+[arm D] acc=0.142 macroF1=0.146 ECE=0.058 AURC=0.649 p95=90029ms
+[written] evals/results/real_eval_filings.json
