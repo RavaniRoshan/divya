@@ -102,13 +102,20 @@ specs:
             Quarterly or annual financial results: revenue, profit, EPS, margins, or a
             comparison against prior periods or guidance.
           capital_action: >-
-            A board action changing the company's capital position per share: declaration or
-            increase of a dividend (final, interim, or a change in dividend policy), share
-            buyback, bonus issue, rights issue, stock split, or subdivision of shares.
+            The company changes the share count of ITSELF, or pays cash to ITS OWN shareholders.
+            Dividend, dividend increase, dividend-policy change, share buyback, bonus issue,
+            rights issue, stock split, subdivision of shares. NOT a purchase or sale of another
+            company's shares -- a filing that transfers a stake in a target or subsidiary is
+            m_and_a even when it discusses percentages, shareholdings and consideration.
           fundraise: >-
-            Raising new capital: an issue of shares, warrants, debt, or an IPO for a subsidiary.
+            Raising new capital: an issue of shares, warrants or debt, or an IPO for a
+            subsidiary. NOT a purchase of another company's shares.
           m_and_a: >-
-            Acquisition, disposal, merger, demerger, joint venture, or sale of a subsidiary.
+            Acquiring, disposing of, merging with, demerging from, or taking a stake in ANOTHER
+            company -- a target, subsidiary, joint venture, or associate. The company is a
+            buyer or seller of a business, not a distributor of cash to its own shareholders and
+            not an issuer of new stock. Choose this even when the filing is full of
+            shareholding percentages and consideration figures.
           leadership_change: >-
             Appointment, resignation, or retirement of a director, promoter, or key executive.
           auditor_change: >-

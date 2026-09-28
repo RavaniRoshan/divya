@@ -221,6 +221,18 @@ def _opposed_pairs(group: list[Observation]) -> list[tuple[Observation, Observat
     return opposites
 
 
+def _run_coroutine(coro: Any) -> LoopResult:
+    """Drive one coroutine to completion from synchronous code.
+
+    Raises if an event loop is already running in this thread, rather than nesting one --
+    `asyncio.run` does that for us, and a RuntimeError from a nested loop is a far better
+    failure than a corrupted task registry.
+    """
+    import asyncio as _asyncio
+
+    return _asyncio.run(coro)
+
+
 def state_builder_add(state: SharedState, contradiction: Contradiction) -> None:
     """Append a contradiction through the builder so it lands in the transition trace."""
     _ACTIVE_BUILDER[id(state)].add_contradiction(contradiction)
@@ -559,6 +571,16 @@ class DivyaRuntime:
             f"Reached max_turns={self.config.max_turns} without a conclusion",
         )
         return LoopResult(state=state, builder=b, degraded=list(self.degraded))
+
+    def run_sync(self, **kwargs: Any) -> LoopResult:
+        """Synchronous wrapper around :meth:`run`.
+
+        The loop is async because a caller may want to run several tasks concurrently. The CLI,
+        the evaluation harness and the two-stage reader all want one task at a time and are not
+        themselves in an event loop, so they need a blocking entry point. This is that entry
+        point, and nothing else changes: the same loop, the same guards, the same termination.
+        """
+        return _run_coroutine(self.run(**kwargs))
 
     def _run_system1_only(
         self, state: SharedState, b: StateBuilder,

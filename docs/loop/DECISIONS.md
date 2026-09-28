@@ -886,3 +886,36 @@ result on the loop is not an artefact of short documents — it is worse on real
 
 **COST OF KNOWING.** This run took **2 h 35 m** on 16 vCPU against summaries' ~25 m. The
 information is worth it and it is not cheap; any further full-text run should be a subset.
+
+---
+
+## D-023 — 2026-09-28 — One Laya process at a time, enforced
+
+**DECISION.** `research/scripts/with_laya_guard.sh` takes an exclusive lock before any command
+that loads the checkpoint, refuses to start a second one, and caps torch to 8 threads.
+
+**CONTEXT.** This session was killed once by an OOM, and the cause was mine: a background
+evaluation holding one Laya process (2.8 GB resident) while I started several more Laya
+processes to test things alongside it, on a 7.5 GiB box that is also running another agent
+session. The failure mode is nasty — the process vanishes mid-run with no traceback, and two
+hours of evaluation disappear with it.
+
+**WHAT THE GUARD DOES.**
+
+1. **Exclusive lock.** `flock` on `/tmp/divya-laya.lock` for the command's lifetime. A second
+   Laya process is **refused** (exit 75) rather than started. Refusing is the point: the
+   alternative is being OOM-killed and losing the run.
+2. **A memory floor.** Refuses to start if `MemAvailable` is under 2500 MiB, so the checkpoint
+   cannot be loaded into a box that cannot hold it.
+3. **Bounded threads.** `OMP_NUM_THREADS=8` rather than 16. A 421M model on 16 vCPUs otherwise
+   takes every core and starves the Ollama server, which presents as a hang even when it is only
+   contention. This is a distinct failure from the OOM and the guard prevents both.
+
+**THE RULE FOR WORKING, NOT JUST THE TOOL.** While an evaluation is running, do **non-Laya**
+work — tests, documentation, code review, analysis. Do not start a second Laya process "just to
+check something", because that is exactly what killed this session. The two are not independent:
+a 2.5-hour evaluation is not worth restarting because a one-line check was convenient.
+
+**WHY A SCRIPT AND NOT A DISCIPLINE.** The discipline was already stated and was already
+violated, twice, by the same agent that wrote it down. A rule that is not enforced by the
+environment is a note, and this one had to become a gate.
