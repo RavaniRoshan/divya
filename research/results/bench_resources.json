@@ -1,0 +1,68 @@
+{
+  "environment": {
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "cpu_count": 16,
+    "python": "3.12.3",
+    "torch": "2.14.0+cpu",
+    "cuda_available": false
+  },
+  "levers": {
+    "persistence": {
+      "cold_load_s": 6.57,
+      "note": "Paid once per process. A long-lived server pays it once at startup; a process-per-request design pays it on every call. This is the single largest 'free' win and it is an architectural choice, not a hardware one."
+    },
+    "batching": [
+      {
+        "batch_size": 1,
+        "batch_seconds": 1.943,
+        "seconds_per_item": 1.943,
+        "items_per_second": 0.51
+      },
+      {
+        "batch_size": 2,
+        "batch_seconds": 3.824,
+        "seconds_per_item": 1.912,
+        "items_per_second": 0.52
+      },
+      {
+        "batch_size": 4,
+        "batch_seconds": 7.054,
+        "seconds_per_item": 1.764,
+        "items_per_second": 0.57
+      },
+      {
+        "batch_size": 8,
+        "batch_seconds": 14.325,
+        "seconds_per_item": 1.791,
+        "items_per_second": 0.56
+      },
+      {
+        "batch_size": 12,
+        "batch_seconds": 22.217,
+        "seconds_per_item": 1.851,
+        "items_per_second": 0.54
+      }
+    ],
+    "batching_summary": {
+      "single_item_s": 1.943,
+      "best_batch_size": 4,
+      "best_s_per_item": 1.764,
+      "speedup_vs_single": 1.1
+    },
+    "marginal_cost_per_question": [
+      {
+        "n_questions": 1,
+        "seconds": 1.378
+      },
+      {
+        "n_questions": 2,
+        "seconds": 2.195
+      }
+    ],
+    "onnx": {
+      "available": false,
+      "note": "onnxruntime is not installed. Whether exporting and serving the model through ONNX Runtime is faster on this box is UNMEASURED. Installing it is a one-line change (pip install 'laya[onnx]') and is the obvious next experiment if throughput is the binding constraint."
+    }
+  },
+  "peak_rss_mb": 2794.1
+}

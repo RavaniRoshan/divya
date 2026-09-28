@@ -79,6 +79,7 @@ def load_protocol(path: str | Path | None = None) -> Protocol:
         raise ProtocolError(f"{p}: {exc}") from exc
 
     _check_cross_spec_constraints(protocol, p)
+    _check_calibration_buckets(protocol, p)
     return protocol
 
 
@@ -106,6 +107,55 @@ def _check_cross_spec_constraints(protocol: Protocol, source: Path) -> None:
 
 
 MAX_CHOICE_OPTIONS = 20
+
+#: Laya fits a separate calibration temperature per (question type, option-count) bucket, and
+#: the mapping is fixed in `laya.common.temp_bucket`:
+#:
+#:     k <= 2 -> "2"   k <= 5 -> "3-5"   k <= 10 -> "6-10"   else -> "11+"
+#:
+#: Measured from the shipped `convaiinnovations/laya` checkpoint's `rl_agent_config.json` on
+#: 2026-09-28, only the `choice:11+` bucket is unfit: its temperature is 0.1006, which
+#: *sharpens* logits roughly tenfold, so a genuine 0.24 top probability is published as 0.99.
+#: Laya refuses to apply it, clamps to 0.5, and warns that "confidence from the affected
+#: entries is uncalibrated" (`laya/agent.py:485`). Every other bucket is valid:
+#: choice:2 = 1.9064, choice:3-5 = 1.7602, choice:6-10 = 1.0, noul:2 = 1.9834, score:3-5 = 1.2514.
+#:
+#: So a `choice` question with more than ten options produces confidences the engine itself
+#: disclaims. Reporting an ECE computed from those numbers would be reporting a number the
+#: library has already told us not to trust, so this is a load-time error rather than a warning.
+#: The fix is fewer options, not a different threshold.
+UNCALIBRATED_CHOICE_BUCKETS: set[str] = {"choice:11+"}
+MAX_CALIBRATED_CHOICE_OPTIONS = 10
+
+
+def laya_option_bucket(qtype: str, k: int) -> str:
+    """Reproduce ``laya.common.temp_bucket`` so the protocol can check its own calibratability."""
+    size = "2" if k <= 2 else "3-5" if k <= 5 else "6-10" if k <= 10 else "11+"
+    return f"{qtype}:{size}"
+
+
+def _check_calibration_buckets(protocol: Protocol, source: Path) -> None:
+    """Fail at load time if any question lands in a bucket the engine disclaims.
+
+    A protocol that produces disclaimed confidence is not a working protocol. Catching it here
+    turns a subtle, downstream, hard-to-attribute measurement error into a one-line error
+    pointing at the question that caused it.
+    """
+    offenders: list[str] = []
+    for spec in protocol.specs:
+        for q in spec.questions:
+            if q.type.value != "choice":
+                continue
+            bucket = laya_option_bucket("choice", q.option_count)
+            if bucket in UNCALIBRATED_CHOICE_BUCKETS:
+                offenders.append(
+                    f"spec {spec.name!r} question {q.name!r} has {q.option_count} options, which "
+                    f"lands in the {bucket} bucket where the shipped checkpoint's calibration "
+                    f"temperature is invalid. Laya clamps it and states the resulting confidence "
+                    f"is uncalibrated. Reduce to {MAX_CALIBRATED_CHOICE_OPTIONS} options or fewer."
+                )
+    if offenders:
+        raise ProtocolError(f"{source}: uncalibrated decision questions:\n  - " + "\n  - ".join(offenders))
 
 
 def iter_questions(protocol: Protocol) -> Iterator[tuple[DecisionSpec, Question]]:

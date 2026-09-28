@@ -33,18 +33,18 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any
+from typing import Protocol as TypingProtocol
 
 from divya.protocol.loader import ProtocolError, get_spec, load_protocol
-from divya.protocol.schema import Protocol
+from divya.protocol.schema import Protocol as DecisionProtocol
 from divya.runtime.state import (
-    Disagreement,
     Observation,
     SharedState,
     StateBuilder,
-    TerminationStatus,
     System1Record,
     System2Record,
+    TerminationStatus,
 )
 from divya.system1.laya_adapter import LayaSystem1, NullSystem1
 from divya.system2.provider import (
@@ -68,7 +68,7 @@ MAX_CONSECUTIVE_SYSTEM2_FAILURES = 2
 MAX_CONSECUTIVE_SYSTEM1_FAILURES = 2
 
 
-class System1(Protocol):
+class System1(TypingProtocol):
     def is_available(self) -> bool: ...
     def answer(
         self,
@@ -141,12 +141,26 @@ class LoopResult:
         }
 
 
+def _options_for(q: Any) -> list[str]:
+    """The option labels for a question, in the order the engine will see them.
+
+    Rendered here rather than inside the pydantic model because the model stores a
+    ``dict | list | None`` union, and a menu built from a union is a menu that can raise at
+    three different call sites depending on the question type.
+    """
+    if q.type.value == "choice":
+        return sorted(q.criteria or {})
+    if q.type.value == "score":
+        return [str(c) for c in (q.criteria or [])]
+    return sorted((q.labels or {"false": "", "true": ""}).values())
+
+
 class DivyaRuntime:
     """Owns the loop. Construct with a protocol and providers; call :meth:`run`."""
 
     def __init__(
         self,
-        protocol: Protocol | None = None,
+        protocol: DecisionProtocol | None = None,
         system2: System2Provider | None = None,
         system1: System1 | None = None,
         config: LoopConfig | None = None,
@@ -190,15 +204,7 @@ class DivyaRuntime:
                         "tier": q.tier,
                         "spec": spec.name,
                         "purpose": q.purpose,
-                        "options": (
-                            sorted(q.criteria)
-                            if q.type.value == "choice"
-                            else (
-                                q.criteria
-                                if q.type.value == "score"
-                                else sorted((q.labels or {"false": "", "true": ""}).values())
-                            )
-                        ),
+                        "options": _options_for(q),
                     }
                 )
         return menu
@@ -256,6 +262,7 @@ class DivyaRuntime:
         consecutive_s2_fail = 0
         consecutive_s1_fail = 0
         seen_request_sets: set[tuple[str, ...]] = set()
+        last_s1_error: str = ""
         system2 = self.system2
 
         for _ in range(self.config.max_turns):
@@ -273,6 +280,7 @@ class DivyaRuntime:
                 min_confidence=self.config.min_confidence,
             )
 
+            info: ProviderInfo = getattr(system2, "info", ProviderInfo("unknown", None, False))
             try:
                 result = await asyncio.wait_for(
                     system2.complete(request, timeout=self.config.system2_timeout_s),
@@ -283,9 +291,9 @@ class DivyaRuntime:
                 b.record_system2(
                     System2Record(
                         turn_index=turn,
-                        provider=getattr(system2, "info", ProviderInfo("unknown", None, False)).name,
-                        model=getattr(system2, "info", None) and system2.info.model,
-                        is_model=getattr(system2, "info", None) and system2.info.is_model,
+                        provider=info.name,
+                        model=info.model,
+                        is_model=bool(getattr(info, "is_model", False)),
                         kind="error",
                         error=f"{type(exc).__name__}: {exc}",
                     )
@@ -363,10 +371,21 @@ class DivyaRuntime:
 
             key = tuple(sorted(wanted))
             if key in seen_request_sets:
-                b.terminate(
-                    TerminationStatus.MAX_TURNS,
-                    f"System-2 repeated the identical request {list(key)}; refusing to loop",
-                )
+                # Attribute the stop to the actual cause. If System-1 has been failing, the
+                # repeated request is a consequence of a broken engine, not of a stuck
+                # reasoning model, and reporting MAX_TURNS would tell an operator to raise a
+                # budget when the real fix is to restart the engine.
+                if consecutive_s1_fail > 0:
+                    b.terminate(
+                        TerminationStatus.ERROR,
+                        f"System-1 failed {consecutive_s1_fail} consecutive times and the "
+                        f"retry of {list(key)} hit the no-repeat guard: {last_s1_error}",
+                    )
+                else:
+                    b.terminate(
+                        TerminationStatus.MAX_TURNS,
+                        f"System-2 repeated the identical request {list(key)}; refusing to loop",
+                    )
                 return LoopResult(state=state, builder=b, degraded=list(self.degraded))
             seen_request_sets.add(key)
 
@@ -416,6 +435,12 @@ class DivyaRuntime:
 
             if rec.error:
                 consecutive_s1_fail += 1
+                last_s1_error = rec.error
+                # Record the degradation on the *first* failure, not when the threshold is
+                # reached. A run that retried once and then stopped still had a degraded
+                # System-1, and a report that only shows degradation at the point of giving up
+                # hides the single most diagnostic fact about the failure.
+                self.degraded.append(f"system1: {rec.error}")
                 if consecutive_s1_fail >= self.config.max_consecutive_system1_failures:
                     self.degraded.append(f"system1: repeated failure ({rec.error})")
                     b.terminate(

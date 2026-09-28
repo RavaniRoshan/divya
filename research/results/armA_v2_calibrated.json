@@ -1,0 +1,2924 @@
+{
+  "dataset": {
+    "path": "evals/datasets/event_triage_v1.jsonl",
+    "n_items": 30,
+    "strata": {
+      "clear": 30
+    },
+    "synthetic_text": true,
+    "note": "Text is authored for this project, not scraped. Accuracy measures agreement with these labels, not correctness about the Indian market. See evals/make_dataset.py."
+  },
+  "config": {
+    "arms": [
+      "A"
+    ],
+    "provider": "ollama",
+    "model": "qwen3:4b",
+    "min_confidence": 0.55,
+    "d_max_turns": 4,
+    "c_samples": 1,
+    "system1_available": true
+  },
+  "results": {
+    "A": {
+      "n_items": 30,
+      "event_type": {
+        "n": 30,
+        "accuracy": 0.7333,
+        "macro_precision": 0.7694,
+        "macro_recall": 0.795,
+        "macro_f1": 0.7239,
+        "per_class": {
+          "auditor_change": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 2.0
+          },
+          "board_meeting": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 2.0
+          },
+          "capital_action": {
+            "precision": 1.0,
+            "recall": 0.7,
+            "f1": 0.8235,
+            "support": 10.0
+          },
+          "credit_rating": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 1.0
+          },
+          "earnings_result": {
+            "precision": 0.4444,
+            "recall": 1.0,
+            "f1": 0.6154,
+            "support": 4.0
+          },
+          "fundraise": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 2.0
+          },
+          "leadership_change": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 2.0
+          },
+          "m_and_a": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 2.0
+          },
+          "other": {
+            "precision": 0.25,
+            "recall": 1.0,
+            "f1": 0.4,
+            "support": 1.0
+          },
+          "regulatory_action": {
+            "precision": 1.0,
+            "recall": 0.25,
+            "f1": 0.4,
+            "support": 4.0
+          }
+        }
+      },
+      "calibration": {
+        "brier_event_type": 0.1826,
+        "ece_event_type": 0.2156,
+        "ece_bins": [
+          {
+            "bin": [
+              0.0,
+              0.067
+            ],
+            "n": 0
+          },
+          {
+            "bin": [
+              0.067,
+              0.133
+            ],
+            "n": 0
+          },
+          {
+            "bin": [
+              0.133,
+              0.2
+            ],
+            "n": 0
+          },
+          {
+            "bin": [
+              0.2,
+              0.267
+            ],
+            "n": 1,
+            "mean_confidence": 0.2577,
+            "empirical_accuracy": 1.0,
+            "gap": 0.7423
+          },
+          {
+            "bin": [
+              0.267,
+              0.333
+            ],
+            "n": 1,
+            "mean_confidence": 0.3265,
+            "empirical_accuracy": 1.0,
+            "gap": 0.6735
+          },
+          {
+            "bin": [
+              0.333,
+              0.4
+            ],
+            "n": 3,
+            "mean_confidence": 0.3712,
+            "empirical_accuracy": 0.6667,
+            "gap": 0.2955
+          },
+          {
+            "bin": [
+              0.4,
+              0.467
+            ],
+            "n": 2,
+            "mean_confidence": 0.4217,
+            "empirical_accuracy": 0.5,
+            "gap": 0.0783
+          },
+          {
+            "bin": [
+              0.467,
+              0.533
+            ],
+            "n": 2,
+            "mean_confidence": 0.5116,
+            "empirical_accuracy": 0.5,
+            "gap": 0.0116
+          },
+          {
+            "bin": [
+              0.533,
+              0.6
+            ],
+            "n": 0
+          },
+          {
+            "bin": [
+              0.6,
+              0.667
+            ],
+            "n": 5,
+            "mean_confidence": 0.6267,
+            "empirical_accuracy": 0.2,
+            "gap": 0.4267
+          },
+          {
+            "bin": [
+              0.667,
+              0.733
+            ],
+            "n": 2,
+            "mean_confidence": 0.6777,
+            "empirical_accuracy": 1.0,
+            "gap": 0.3223
+          },
+          {
+            "bin": [
+              0.733,
+              0.8
+            ],
+            "n": 2,
+            "mean_confidence": 0.7525,
+            "empirical_accuracy": 0.5,
+            "gap": 0.2525
+          },
+          {
+            "bin": [
+              0.8,
+              0.867
+            ],
+            "n": 3,
+            "mean_confidence": 0.8363,
+            "empirical_accuracy": 1.0,
+            "gap": 0.1637
+          },
+          {
+            "bin": [
+              0.867,
+              0.933
+            ],
+            "n": 2,
+            "mean_confidence": 0.9118,
+            "empirical_accuracy": 1.0,
+            "gap": 0.0882
+          },
+          {
+            "bin": [
+              0.933,
+              1.0
+            ],
+            "n": 7,
+            "mean_confidence": 0.9949,
+            "empirical_accuracy": 1.0,
+            "gap": 0.0051
+          }
+        ],
+        "aurc": 0.1166,
+        "risk_coverage": [
+          {
+            "coverage": 0.0333,
+            "risk": 0.0,
+            "threshold": 0.9996
+          },
+          {
+            "coverage": 0.0667,
+            "risk": 0.0,
+            "threshold": 0.9995
+          },
+          {
+            "coverage": 0.1,
+            "risk": 0.0,
+            "threshold": 0.9992
+          },
+          {
+            "coverage": 0.1333,
+            "risk": 0.0,
+            "threshold": 0.9986
+          },
+          {
+            "coverage": 0.1667,
+            "risk": 0.0,
+            "threshold": 0.9975
+          },
+          {
+            "coverage": 0.2,
+            "risk": 0.0,
+            "threshold": 0.9954
+          },
+          {
+            "coverage": 0.2333,
+            "risk": 0.0,
+            "threshold": 0.9746
+          },
+          {
+            "coverage": 0.2667,
+            "risk": 0.0,
+            "threshold": 0.9321
+          },
+          {
+            "coverage": 0.3,
+            "risk": 0.0,
+            "threshold": 0.8914
+          },
+          {
+            "coverage": 0.3333,
+            "risk": 0.0,
+            "threshold": 0.8467
+          },
+          {
+            "coverage": 0.3667,
+            "risk": 0.0,
+            "threshold": 0.8351
+          },
+          {
+            "coverage": 0.4,
+            "risk": 0.0,
+            "threshold": 0.8271
+          },
+          {
+            "coverage": 0.4333,
+            "risk": 0.0,
+            "threshold": 0.766
+          },
+          {
+            "coverage": 0.4667,
+            "risk": 0.0714,
+            "threshold": 0.7389
+          },
+          {
+            "coverage": 0.5,
+            "risk": 0.0667,
+            "threshold": 0.6798
+          },
+          {
+            "coverage": 0.5333,
+            "risk": 0.0625,
+            "threshold": 0.6756
+          },
+          {
+            "coverage": 0.5667,
+            "risk": 0.1176,
+            "threshold": 0.6391
+          },
+          {
+            "coverage": 0.6,
+            "risk": 0.1667,
+            "threshold": 0.6321
+          },
+          {
+            "coverage": 0.6333,
+            "risk": 0.1579,
+            "threshold": 0.6308
+          },
+          {
+            "coverage": 0.6667,
+            "risk": 0.2,
+            "threshold": 0.626
+          },
+          {
+            "coverage": 0.7,
+            "risk": 0.2381,
+            "threshold": 0.6053
+          },
+          {
+            "coverage": 0.7333,
+            "risk": 0.2273,
+            "threshold": 0.5282
+          },
+          {
+            "coverage": 0.7667,
+            "risk": 0.2609,
+            "threshold": 0.4951
+          },
+          {
+            "coverage": 0.8,
+            "risk": 0.2917,
+            "threshold": 0.4231
+          },
+          {
+            "coverage": 0.8333,
+            "risk": 0.28,
+            "threshold": 0.4204
+          },
+          {
+            "coverage": 0.8667,
+            "risk": 0.2692,
+            "threshold": 0.386
+          },
+          {
+            "coverage": 0.9,
+            "risk": 0.2593,
+            "threshold": 0.38
+          },
+          {
+            "coverage": 0.9333,
+            "risk": 0.2857,
+            "threshold": 0.3476
+          },
+          {
+            "coverage": 0.9667,
+            "risk": 0.2759,
+            "threshold": 0.3265
+          },
+          {
+            "coverage": 1.0,
+            "risk": 0.2667,
+            "threshold": 0.2577
+          }
+        ]
+      },
+      "is_material_noul": {
+        "brier": 0.2729,
+        "ece": 0.2549,
+        "accuracy_at_0.5": 0.4
+      },
+      "materiality_ordinal": {
+        "exact": 0.3333,
+        "within_one": 0.7
+      },
+      "cost": {
+        "wall_ms_mean": 4422.9,
+        "wall_ms_p95": 4982.4,
+        "system1_ms_mean": 4422.7,
+        "system1_calls_mean": 1.0,
+        "system2_calls_mean": 0.0,
+        "prompt_tokens_mean": 0.0,
+        "completion_tokens_mean": 0.0,
+        "unnecessary_system1_calls": 0
+      },
+      "reliability": {
+        "terminated_ok_rate": 1.0,
+        "abstention_rate": 0.0,
+        "system1_failure_rate": 0.0,
+        "max_turns_hit_rate": 0.0
+      },
+      "by_stratum": {
+        "clear": {
+          "n": 30,
+          "accuracy": 0.7333,
+          "macro_f1": 0.7239,
+          "brier": 0.1826,
+          "ece": 0.2156,
+          "aurc": 0.1166,
+          "abstention_rate": 0.0,
+          "wall_ms_mean": 4422.9
+        }
+      }
+    }
+  },
+  "per_item": {
+    "A": [
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "earnings_result",
+            "probabilities": {
+              "earnings_result": 0.9975,
+              "capital_action": 0.0003,
+              "fundraise": 0.0004,
+              "m_and_a": 0.0002,
+              "leadership_change": 0.0002,
+              "auditor_change": 0.0002,
+              "regulatory_action": 0.0001,
+              "credit_rating": 0.0002,
+              "board_meeting": 0.0001,
+              "other": 0.0008
+            },
+            "confidence": 0.9902,
+            "answer_confidence": 0.9975,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.5919,
+            "confidence": 0.5919,
+            "answer_confidence": 0.5919,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.2832,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0135,
+              "1": 0.1046,
+              "2": 0.4962,
+              "3": 0.3566,
+              "4": 0.0291
+            },
+            "confidence": 0.3088,
+            "answer_confidence": 0.4962,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.379,
+            "confidence": 0.621,
+            "answer_confidence": 0.621,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 9760.9,
+        "s2_ms": 0.0,
+        "wall_ms": 9761.5,
+        "item_id": "clear_0000",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "earnings_result",
+            "probabilities": {
+              "earnings_result": 0.9954,
+              "capital_action": 0.0006,
+              "fundraise": 0.0007,
+              "m_and_a": 0.0005,
+              "leadership_change": 0.0004,
+              "auditor_change": 0.0005,
+              "regulatory_action": 0.0003,
+              "credit_rating": 0.0004,
+              "board_meeting": 0.0003,
+              "other": 0.0009
+            },
+            "confidence": 0.9829,
+            "answer_confidence": 0.9954,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.5734,
+            "confidence": 0.5734,
+            "answer_confidence": 0.5734,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 1.9807,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0186,
+              "1": 0.1684,
+              "2": 0.667,
+              "3": 0.1054,
+              "4": 0.0405
+            },
+            "confidence": 0.3716,
+            "answer_confidence": 0.667,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.9391,
+            "confidence": 0.9391,
+            "answer_confidence": 0.9391,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4074.1,
+        "s2_ms": 0.0,
+        "wall_ms": 4074.4,
+        "item_id": "clear_0001",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "board_meeting",
+            "probabilities": {
+              "earnings_result": 0.1602,
+              "capital_action": 0.0006,
+              "fundraise": 0.0008,
+              "m_and_a": 0.0004,
+              "leadership_change": 0.0004,
+              "auditor_change": 0.0003,
+              "regulatory_action": 0.0003,
+              "credit_rating": 0.0002,
+              "board_meeting": 0.8351,
+              "other": 0.0018
+            },
+            "confidence": 0.7924,
+            "answer_confidence": 0.8351,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.5016,
+            "confidence": 0.5016,
+            "answer_confidence": 0.5016,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.0711,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0348,
+              "1": 0.1278,
+              "2": 0.6054,
+              "3": 0.1956,
+              "4": 0.0364
+            },
+            "confidence": 0.302,
+            "answer_confidence": 0.6054,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.3493,
+            "confidence": 0.6507,
+            "answer_confidence": 0.6507,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4025.3,
+        "s2_ms": 0.0,
+        "wall_ms": 4025.4,
+        "item_id": "clear_0002",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "earnings_result",
+            "probabilities": {
+              "earnings_result": 0.7389,
+              "capital_action": 0.12,
+              "fundraise": 0.0341,
+              "m_and_a": 0.0074,
+              "leadership_change": 0.0048,
+              "auditor_change": 0.0058,
+              "regulatory_action": 0.0054,
+              "credit_rating": 0.008,
+              "board_meeting": 0.0219,
+              "other": 0.0538
+            },
+            "confidence": 0.569,
+            "answer_confidence": 0.7389,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.443,
+            "confidence": 0.557,
+            "answer_confidence": 0.557,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.0146,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0177,
+              "1": 0.1657,
+              "2": 0.6314,
+              "3": 0.1547,
+              "4": 0.0305
+            },
+            "confidence": 0.3447,
+            "answer_confidence": 0.6314,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.2102,
+            "confidence": 0.7898,
+            "answer_confidence": 0.7898,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4347.7,
+        "s2_ms": 0.0,
+        "wall_ms": 4347.8,
+        "item_id": "clear_0003",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "capital_action",
+            "probabilities": {
+              "earnings_result": 0.2584,
+              "capital_action": 0.5282,
+              "fundraise": 0.0949,
+              "m_and_a": 0.0098,
+              "leadership_change": 0.0044,
+              "auditor_change": 0.008,
+              "regulatory_action": 0.0079,
+              "credit_rating": 0.0165,
+              "board_meeting": 0.0123,
+              "other": 0.0597
+            },
+            "confidence": 0.4153,
+            "answer_confidence": 0.5282,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.4857,
+            "confidence": 0.5143,
+            "answer_confidence": 0.5143,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.1691,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0114,
+              "1": 0.0783,
+              "2": 0.6575,
+              "3": 0.2355,
+              "4": 0.0173
+            },
+            "confidence": 0.4179,
+            "answer_confidence": 0.6575,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.2476,
+            "confidence": 0.7524,
+            "answer_confidence": 0.7524,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4088.6,
+        "s2_ms": 0.0,
+        "wall_ms": 4088.7,
+        "item_id": "clear_0004",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "capital_action",
+            "probabilities": {
+              "earnings_result": 0.2075,
+              "capital_action": 0.6798,
+              "fundraise": 0.0197,
+              "m_and_a": 0.0051,
+              "leadership_change": 0.0033,
+              "auditor_change": 0.0045,
+              "regulatory_action": 0.0086,
+              "credit_rating": 0.0032,
+              "board_meeting": 0.0228,
+              "other": 0.0455
+            },
+            "confidence": 0.556,
+            "answer_confidence": 0.6798,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.3955,
+            "confidence": 0.6045,
+            "answer_confidence": 0.6045,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 1.9895,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0287,
+              "1": 0.1124,
+              "2": 0.7224,
+              "3": 0.1138,
+              "4": 0.0227
+            },
+            "confidence": 0.431,
+            "answer_confidence": 0.7224,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.3353,
+            "confidence": 0.6647,
+            "answer_confidence": 0.6647,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 3780.4,
+        "s2_ms": 0.0,
+        "wall_ms": 3780.5,
+        "item_id": "clear_0005",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "capital_action",
+            "probabilities": {
+              "earnings_result": 0.2047,
+              "capital_action": 0.3265,
+              "fundraise": 0.0799,
+              "m_and_a": 0.0585,
+              "leadership_change": 0.0173,
+              "auditor_change": 0.0264,
+              "regulatory_action": 0.0144,
+              "credit_rating": 0.0229,
+              "board_meeting": 0.1037,
+              "other": 0.1457
+            },
+            "confidence": 0.1802,
+            "answer_confidence": 0.3265,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.4775,
+            "confidence": 0.5225,
+            "answer_confidence": 0.5225,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.0138,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0258,
+              "1": 0.1659,
+              "2": 0.5995,
+              "3": 0.1864,
+              "4": 0.0225
+            },
+            "confidence": 0.318,
+            "answer_confidence": 0.5995,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.2237,
+            "confidence": 0.7763,
+            "answer_confidence": 0.7763,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 3979.9,
+        "s2_ms": 0.0,
+        "wall_ms": 3980.1,
+        "item_id": "clear_0006",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "other",
+            "probabilities": {
+              "earnings_result": 0.2087,
+              "capital_action": 0.027,
+              "fundraise": 0.0349,
+              "m_and_a": 0.0291,
+              "leadership_change": 0.0119,
+              "auditor_change": 0.0188,
+              "regulatory_action": 0.0164,
+              "credit_rating": 0.0114,
+              "board_meeting": 0.0096,
+              "other": 0.6321
+            },
+            "confidence": 0.4679,
+            "answer_confidence": 0.6321,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.4126,
+            "confidence": 0.5874,
+            "answer_confidence": 0.5874,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.2139,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0153,
+              "1": 0.1328,
+              "2": 0.5255,
+              "3": 0.2757,
+              "4": 0.0507
+            },
+            "confidence": 0.269,
+            "answer_confidence": 0.5255,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.5135,
+            "confidence": 0.5135,
+            "answer_confidence": 0.5135,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4168.2,
+        "s2_ms": 0.0,
+        "wall_ms": 4168.5,
+        "item_id": "clear_0007",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "other",
+            "probabilities": {
+              "earnings_result": 0.308,
+              "capital_action": 0.0602,
+              "fundraise": 0.1134,
+              "m_and_a": 0.0328,
+              "leadership_change": 0.0123,
+              "auditor_change": 0.0202,
+              "regulatory_action": 0.0716,
+              "credit_rating": 0.0216,
+              "board_meeting": 0.0122,
+              "other": 0.3476
+            },
+            "confidence": 0.2545,
+            "answer_confidence": 0.3476,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.3207,
+            "confidence": 0.6793,
+            "answer_confidence": 0.6793,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.0894,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0322,
+              "1": 0.1922,
+              "2": 0.4774,
+              "3": 0.2503,
+              "4": 0.0478
+            },
+            "confidence": 0.2092,
+            "answer_confidence": 0.4774,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.3861,
+            "confidence": 0.6139,
+            "answer_confidence": 0.6139,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4250.8,
+        "s2_ms": 0.0,
+        "wall_ms": 4251.3,
+        "item_id": "clear_0008",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "m_and_a",
+            "probabilities": {
+              "earnings_result": 0.0188,
+              "capital_action": 0.1115,
+              "fundraise": 0.0986,
+              "m_and_a": 0.6308,
+              "leadership_change": 0.0096,
+              "auditor_change": 0.0165,
+              "regulatory_action": 0.0097,
+              "credit_rating": 0.0134,
+              "board_meeting": 0.059,
+              "other": 0.0321
+            },
+            "confidence": 0.4221,
+            "answer_confidence": 0.6308,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.6568,
+            "confidence": 0.6568,
+            "answer_confidence": 0.6568,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.424,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0111,
+              "1": 0.0688,
+              "2": 0.4294,
+              "3": 0.4664,
+              "4": 0.0243
+            },
+            "confidence": 0.3518,
+            "answer_confidence": 0.4664,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.1744,
+            "confidence": 0.8256,
+            "answer_confidence": 0.8256,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4077.4,
+        "s2_ms": 0.0,
+        "wall_ms": 4077.6,
+        "item_id": "clear_0009",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "fundraise",
+            "probabilities": {
+              "earnings_result": 0.0009,
+              "capital_action": 0.0534,
+              "fundraise": 0.9321,
+              "m_and_a": 0.0019,
+              "leadership_change": 0.0006,
+              "auditor_change": 0.0008,
+              "regulatory_action": 0.0007,
+              "credit_rating": 0.0014,
+              "board_meeting": 0.0021,
+              "other": 0.0061
+            },
+            "confidence": 0.8659,
+            "answer_confidence": 0.9321,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.5089,
+            "confidence": 0.5089,
+            "answer_confidence": 0.5089,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.2411,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0137,
+              "1": 0.0779,
+              "2": 0.5936,
+              "3": 0.2833,
+              "4": 0.0316
+            },
+            "confidence": 0.3579,
+            "answer_confidence": 0.5936,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.3349,
+            "confidence": 0.6651,
+            "answer_confidence": 0.6651,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4055.1,
+        "s2_ms": 0.0,
+        "wall_ms": 4055.2,
+        "item_id": "clear_0010",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "capital_action",
+            "probabilities": {
+              "earnings_result": 0.0039,
+              "capital_action": 0.766,
+              "fundraise": 0.1943,
+              "m_and_a": 0.0083,
+              "leadership_change": 0.0018,
+              "auditor_change": 0.003,
+              "regulatory_action": 0.0036,
+              "credit_rating": 0.0034,
+              "board_meeting": 0.0025,
+              "other": 0.0133
+            },
+            "confidence": 0.6853,
+            "answer_confidence": 0.766,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.482,
+            "confidence": 0.518,
+            "answer_confidence": 0.518,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.1179,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0136,
+              "1": 0.1039,
+              "2": 0.6597,
+              "3": 0.1965,
+              "4": 0.0263
+            },
+            "confidence": 0.3889,
+            "answer_confidence": 0.6597,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.3678,
+            "confidence": 0.6322,
+            "answer_confidence": 0.6322,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4764.9,
+        "s2_ms": 0.0,
+        "wall_ms": 4765.3,
+        "item_id": "clear_0011",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "earnings_result",
+            "probabilities": {
+              "earnings_result": 0.6053,
+              "capital_action": 0.0283,
+              "fundraise": 0.0261,
+              "m_and_a": 0.0199,
+              "leadership_change": 0.0923,
+              "auditor_change": 0.0281,
+              "regulatory_action": 0.0103,
+              "credit_rating": 0.0128,
+              "board_meeting": 0.029,
+              "other": 0.1479
+            },
+            "confidence": 0.398,
+            "answer_confidence": 0.6053,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.3574,
+            "confidence": 0.6426,
+            "answer_confidence": 0.6426,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 1.945,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0125,
+              "1": 0.2638,
+              "2": 0.5392,
+              "3": 0.1351,
+              "4": 0.0494
+            },
+            "confidence": 0.2803,
+            "answer_confidence": 0.5392,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.496,
+            "confidence": 0.504,
+            "answer_confidence": 0.504,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 3996.7,
+        "s2_ms": 0.0,
+        "wall_ms": 3996.9,
+        "item_id": "clear_0012",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "auditor_change",
+            "probabilities": {
+              "earnings_result": 0.0002,
+              "capital_action": 0.0001,
+              "fundraise": 0.0001,
+              "m_and_a": 0.0001,
+              "leadership_change": 0.0,
+              "auditor_change": 0.9992,
+              "regulatory_action": 0.0,
+              "credit_rating": 0.0,
+              "board_meeting": 0.0,
+              "other": 0.0002
+            },
+            "confidence": 0.9965,
+            "answer_confidence": 0.9992,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.3958,
+            "confidence": 0.6042,
+            "answer_confidence": 0.6042,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.0686,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0209,
+              "1": 0.1824,
+              "2": 0.5648,
+              "3": 0.1711,
+              "4": 0.0608
+            },
+            "confidence": 0.263,
+            "answer_confidence": 0.5648,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.5591,
+            "confidence": 0.5591,
+            "answer_confidence": 0.5591,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4263.8,
+        "s2_ms": 0.0,
+        "wall_ms": 4263.9,
+        "item_id": "clear_0013",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "credit_rating",
+            "probabilities": {
+              "earnings_result": 0.0,
+              "capital_action": 0.0001,
+              "fundraise": 0.0001,
+              "m_and_a": 0.0001,
+              "leadership_change": 0.0,
+              "auditor_change": 0.0,
+              "regulatory_action": 0.0,
+              "credit_rating": 0.9996,
+              "board_meeting": 0.0,
+              "other": 0.0
+            },
+            "confidence": 0.9982,
+            "answer_confidence": 0.9996,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.477,
+            "confidence": 0.523,
+            "answer_confidence": 0.523,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.3169,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0153,
+              "1": 0.1431,
+              "2": 0.3923,
+              "3": 0.4082,
+              "4": 0.0412
+            },
+            "confidence": 0.2506,
+            "answer_confidence": 0.4082,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.8327,
+            "confidence": 0.8327,
+            "answer_confidence": 0.8327,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 3783.7,
+        "s2_ms": 0.0,
+        "wall_ms": 3783.8,
+        "item_id": "clear_0014",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "other",
+            "probabilities": {
+              "earnings_result": 0.1484,
+              "capital_action": 0.0926,
+              "fundraise": 0.0765,
+              "m_and_a": 0.1045,
+              "leadership_change": 0.1171,
+              "auditor_change": 0.0994,
+              "regulatory_action": 0.0252,
+              "credit_rating": 0.0423,
+              "board_meeting": 0.0364,
+              "other": 0.2577
+            },
+            "confidence": 0.0822,
+            "answer_confidence": 0.2577,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.4067,
+            "confidence": 0.5933,
+            "answer_confidence": 0.5933,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.1279,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0136,
+              "1": 0.1783,
+              "2": 0.5285,
+              "3": 0.2259,
+              "4": 0.0537
+            },
+            "confidence": 0.257,
+            "answer_confidence": 0.5285,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.4341,
+            "confidence": 0.5659,
+            "answer_confidence": 0.5659,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4096.3,
+        "s2_ms": 0.0,
+        "wall_ms": 4096.4,
+        "item_id": "clear_0015",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "earnings_result",
+            "probabilities": {
+              "earnings_result": 0.9986,
+              "capital_action": 0.0002,
+              "fundraise": 0.0002,
+              "m_and_a": 0.0001,
+              "leadership_change": 0.0001,
+              "auditor_change": 0.0001,
+              "regulatory_action": 0.0001,
+              "credit_rating": 0.0001,
+              "board_meeting": 0.0001,
+              "other": 0.0004
+            },
+            "confidence": 0.9941,
+            "answer_confidence": 0.9986,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.6123,
+            "confidence": 0.6123,
+            "answer_confidence": 0.6123,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.4559,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0109,
+              "1": 0.0666,
+              "2": 0.3968,
+              "3": 0.5073,
+              "4": 0.0185
+            },
+            "confidence": 0.3696,
+            "answer_confidence": 0.5073,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.3506,
+            "confidence": 0.6494,
+            "answer_confidence": 0.6494,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4224.9,
+        "s2_ms": 0.0,
+        "wall_ms": 4225.1,
+        "item_id": "clear_0016",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "earnings_result",
+            "probabilities": {
+              "earnings_result": 0.9746,
+              "capital_action": 0.0032,
+              "fundraise": 0.0041,
+              "m_and_a": 0.0026,
+              "leadership_change": 0.0018,
+              "auditor_change": 0.0028,
+              "regulatory_action": 0.0014,
+              "credit_rating": 0.0025,
+              "board_meeting": 0.002,
+              "other": 0.0049
+            },
+            "confidence": 0.9252,
+            "answer_confidence": 0.9746,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.5363,
+            "confidence": 0.5363,
+            "answer_confidence": 0.5363,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 1.9811,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0188,
+              "1": 0.1772,
+              "2": 0.6459,
+              "3": 0.1202,
+              "4": 0.0378
+            },
+            "confidence": 0.3524,
+            "answer_confidence": 0.6459,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.9385,
+            "confidence": 0.9385,
+            "answer_confidence": 0.9385,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4581.7,
+        "s2_ms": 0.0,
+        "wall_ms": 4582.2,
+        "item_id": "clear_0017",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "board_meeting",
+            "probabilities": {
+              "earnings_result": 0.1488,
+              "capital_action": 0.0005,
+              "fundraise": 0.0008,
+              "m_and_a": 0.0004,
+              "leadership_change": 0.0004,
+              "auditor_change": 0.0003,
+              "regulatory_action": 0.0002,
+              "credit_rating": 0.0002,
+              "board_meeting": 0.8467,
+              "other": 0.0017
+            },
+            "confidence": 0.8016,
+            "answer_confidence": 0.8467,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.5025,
+            "confidence": 0.5025,
+            "answer_confidence": 0.5025,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.0605,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0367,
+              "1": 0.1275,
+              "2": 0.6111,
+              "3": 0.188,
+              "4": 0.0367
+            },
+            "confidence": 0.3038,
+            "answer_confidence": 0.6111,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.3421,
+            "confidence": 0.6579,
+            "answer_confidence": 0.6579,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4427.4,
+        "s2_ms": 0.0,
+        "wall_ms": 4427.7,
+        "item_id": "clear_0018",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "earnings_result",
+            "probabilities": {
+              "earnings_result": 0.6391,
+              "capital_action": 0.1374,
+              "fundraise": 0.0849,
+              "m_and_a": 0.0157,
+              "leadership_change": 0.0059,
+              "auditor_change": 0.0097,
+              "regulatory_action": 0.0069,
+              "credit_rating": 0.0174,
+              "board_meeting": 0.0224,
+              "other": 0.0606
+            },
+            "confidence": 0.4491,
+            "answer_confidence": 0.6391,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.4686,
+            "confidence": 0.5314,
+            "answer_confidence": 0.5314,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.1293,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0159,
+              "1": 0.1395,
+              "2": 0.5713,
+              "3": 0.2462,
+              "4": 0.0272
+            },
+            "confidence": 0.3145,
+            "answer_confidence": 0.5713,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.2089,
+            "confidence": 0.7911,
+            "answer_confidence": 0.7911,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4608.4,
+        "s2_ms": 0.0,
+        "wall_ms": 4608.5,
+        "item_id": "clear_0019",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "capital_action",
+            "probabilities": {
+              "earnings_result": 0.3323,
+              "capital_action": 0.386,
+              "fundraise": 0.1296,
+              "m_and_a": 0.0179,
+              "leadership_change": 0.0055,
+              "auditor_change": 0.0118,
+              "regulatory_action": 0.0103,
+              "credit_rating": 0.0223,
+              "board_meeting": 0.0156,
+              "other": 0.0687
+            },
+            "confidence": 0.3346,
+            "answer_confidence": 0.386,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.4609,
+            "confidence": 0.5391,
+            "answer_confidence": 0.5391,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.1459,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0115,
+              "1": 0.0761,
+              "2": 0.6828,
+              "3": 0.2142,
+              "4": 0.0154
+            },
+            "confidence": 0.4395,
+            "answer_confidence": 0.6828,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.2464,
+            "confidence": 0.7536,
+            "answer_confidence": 0.7536,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4062.3,
+        "s2_ms": 0.0,
+        "wall_ms": 4062.5,
+        "item_id": "clear_0020",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "earnings_result",
+            "probabilities": {
+              "earnings_result": 0.4951,
+              "capital_action": 0.3823,
+              "fundraise": 0.0226,
+              "m_and_a": 0.0056,
+              "leadership_change": 0.003,
+              "auditor_change": 0.004,
+              "regulatory_action": 0.0086,
+              "credit_rating": 0.0031,
+              "board_meeting": 0.0117,
+              "other": 0.0639
+            },
+            "confidence": 0.4976,
+            "answer_confidence": 0.4951,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.4596,
+            "confidence": 0.5404,
+            "answer_confidence": 0.5404,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.0099,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0211,
+              "1": 0.0867,
+              "2": 0.7713,
+              "3": 0.1031,
+              "4": 0.0178
+            },
+            "confidence": 0.503,
+            "answer_confidence": 0.7713,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.2737,
+            "confidence": 0.7263,
+            "answer_confidence": 0.7263,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4151.4,
+        "s2_ms": 0.0,
+        "wall_ms": 4151.6,
+        "item_id": "clear_0021",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "capital_action",
+            "probabilities": {
+              "earnings_result": 0.1983,
+              "capital_action": 0.38,
+              "fundraise": 0.0931,
+              "m_and_a": 0.0293,
+              "leadership_change": 0.0183,
+              "auditor_change": 0.0264,
+              "regulatory_action": 0.0185,
+              "credit_rating": 0.0265,
+              "board_meeting": 0.0848,
+              "other": 0.1249
+            },
+            "confidence": 0.2092,
+            "answer_confidence": 0.38,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.5457,
+            "confidence": 0.5457,
+            "answer_confidence": 0.5457,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.028,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0352,
+              "1": 0.1637,
+              "2": 0.567,
+              "3": 0.206,
+              "4": 0.0281
+            },
+            "confidence": 0.2783,
+            "answer_confidence": 0.567,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.2251,
+            "confidence": 0.7749,
+            "answer_confidence": 0.7749,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4042.2,
+        "s2_ms": 0.0,
+        "wall_ms": 4042.3,
+        "item_id": "clear_0022",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "other",
+            "probabilities": {
+              "earnings_result": 0.2022,
+              "capital_action": 0.0273,
+              "fundraise": 0.0402,
+              "m_and_a": 0.0301,
+              "leadership_change": 0.0122,
+              "auditor_change": 0.0184,
+              "regulatory_action": 0.0171,
+              "credit_rating": 0.0161,
+              "board_meeting": 0.0104,
+              "other": 0.626
+            },
+            "confidence": 0.4528,
+            "answer_confidence": 0.626,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.3926,
+            "confidence": 0.6074,
+            "answer_confidence": 0.6074,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.1735,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0161,
+              "1": 0.143,
+              "2": 0.5498,
+              "3": 0.2338,
+              "4": 0.0574
+            },
+            "confidence": 0.2686,
+            "answer_confidence": 0.5498,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.5017,
+            "confidence": 0.5017,
+            "answer_confidence": 0.5017,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 3968.2,
+        "s2_ms": 0.0,
+        "wall_ms": 3968.4,
+        "item_id": "clear_0023",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "regulatory_action",
+            "probabilities": {
+              "earnings_result": 0.1992,
+              "capital_action": 0.0532,
+              "fundraise": 0.0786,
+              "m_and_a": 0.0264,
+              "leadership_change": 0.0114,
+              "auditor_change": 0.0147,
+              "regulatory_action": 0.4204,
+              "credit_rating": 0.0192,
+              "board_meeting": 0.0111,
+              "other": 0.166
+            },
+            "confidence": 0.2729,
+            "answer_confidence": 0.4204,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.3066,
+            "confidence": 0.6934,
+            "answer_confidence": 0.6934,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.1094,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0306,
+              "1": 0.1853,
+              "2": 0.4771,
+              "3": 0.2582,
+              "4": 0.0488
+            },
+            "confidence": 0.2114,
+            "answer_confidence": 0.4771,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.3674,
+            "confidence": 0.6326,
+            "answer_confidence": 0.6326,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4081.0,
+        "s2_ms": 0.0,
+        "wall_ms": 4081.1,
+        "item_id": "clear_0024",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "m_and_a",
+            "probabilities": {
+              "earnings_result": 0.013,
+              "capital_action": 0.0854,
+              "fundraise": 0.1199,
+              "m_and_a": 0.6756,
+              "leadership_change": 0.0061,
+              "auditor_change": 0.0103,
+              "regulatory_action": 0.007,
+              "credit_rating": 0.0087,
+              "board_meeting": 0.0529,
+              "other": 0.0211
+            },
+            "confidence": 0.4888,
+            "answer_confidence": 0.6756,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.8009,
+            "confidence": 0.8009,
+            "answer_confidence": 0.8009,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.4713,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0124,
+              "1": 0.0564,
+              "2": 0.3971,
+              "3": 0.5159,
+              "4": 0.0183
+            },
+            "confidence": 0.38,
+            "answer_confidence": 0.5159,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.1473,
+            "confidence": 0.8527,
+            "answer_confidence": 0.8527,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4190.7,
+        "s2_ms": 0.0,
+        "wall_ms": 4191.0,
+        "item_id": "clear_0025",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "fundraise",
+            "probabilities": {
+              "earnings_result": 0.0013,
+              "capital_action": 0.0923,
+              "fundraise": 0.8914,
+              "m_and_a": 0.0016,
+              "leadership_change": 0.0008,
+              "auditor_change": 0.001,
+              "regulatory_action": 0.0009,
+              "credit_rating": 0.0016,
+              "board_meeting": 0.0039,
+              "other": 0.005
+            },
+            "confidence": 0.8176,
+            "answer_confidence": 0.8914,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.506,
+            "confidence": 0.506,
+            "answer_confidence": 0.506,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.1881,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0142,
+              "1": 0.0813,
+              "2": 0.6309,
+              "3": 0.2497,
+              "4": 0.024
+            },
+            "confidence": 0.3844,
+            "answer_confidence": 0.6309,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.3166,
+            "confidence": 0.6834,
+            "answer_confidence": 0.6834,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 5147.8,
+        "s2_ms": 0.0,
+        "wall_ms": 5148.4,
+        "item_id": "clear_0026",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "capital_action",
+            "probabilities": {
+              "earnings_result": 0.0051,
+              "capital_action": 0.8271,
+              "fundraise": 0.126,
+              "m_and_a": 0.0093,
+              "leadership_change": 0.002,
+              "auditor_change": 0.0031,
+              "regulatory_action": 0.005,
+              "credit_rating": 0.0024,
+              "board_meeting": 0.0023,
+              "other": 0.0177
+            },
+            "confidence": 0.7198,
+            "answer_confidence": 0.8271,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.4148,
+            "confidence": 0.5852,
+            "answer_confidence": 0.5852,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.2378,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.012,
+              "1": 0.0779,
+              "2": 0.5936,
+              "3": 0.2934,
+              "4": 0.0231
+            },
+            "confidence": 0.3735,
+            "answer_confidence": 0.5936,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.3731,
+            "confidence": 0.6269,
+            "answer_confidence": 0.6269,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4405.5,
+        "s2_ms": 0.0,
+        "wall_ms": 4405.9,
+        "item_id": "clear_0027",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "earnings_result",
+            "probabilities": {
+              "earnings_result": 0.4231,
+              "capital_action": 0.0438,
+              "fundraise": 0.0641,
+              "m_and_a": 0.037,
+              "leadership_change": 0.1216,
+              "auditor_change": 0.0272,
+              "regulatory_action": 0.0133,
+              "credit_rating": 0.0165,
+              "board_meeting": 0.029,
+              "other": 0.2245
+            },
+            "confidence": 0.2546,
+            "answer_confidence": 0.4231,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.3684,
+            "confidence": 0.6316,
+            "answer_confidence": 0.6316,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 1.9382,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0131,
+              "1": 0.272,
+              "2": 0.5302,
+              "3": 0.1331,
+              "4": 0.0516
+            },
+            "confidence": 0.2738,
+            "answer_confidence": 0.5302,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.4613,
+            "confidence": 0.5387,
+            "answer_confidence": 0.5387,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4495.7,
+        "s2_ms": 0.0,
+        "wall_ms": 4496.2,
+        "item_id": "clear_0028",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      },
+      {
+        "answers": {
+          "event_type": {
+            "type": "choice",
+            "choice": "auditor_change",
+            "probabilities": {
+              "earnings_result": 0.0001,
+              "capital_action": 0.0001,
+              "fundraise": 0.0001,
+              "m_and_a": 0.0,
+              "leadership_change": 0.0,
+              "auditor_change": 0.9995,
+              "regulatory_action": 0.0,
+              "credit_rating": 0.0,
+              "board_meeting": 0.0,
+              "other": 0.0001
+            },
+            "confidence": 0.9975,
+            "answer_confidence": 0.9995,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "is_material": {
+            "type": "noul",
+            "noul": 0.4197,
+            "confidence": 0.5803,
+            "answer_confidence": 0.5803,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "materiality": {
+            "type": "score",
+            "score": 2.1039,
+            "legend": {
+              "0": "Routine. Procedural, or already known. A meeting notice, a compliance filing, or an unchanged dividend.",
+              "1": "Minor. Real but small in financial terms, or a change with no immediate financial consequence, such as a non-executive director change.",
+              "2": "Moderate. A material financial result, a meaningful capital action, or a significant leadership or strategic change.",
+              "3": "Major. A large result, a transformative acquisition, a substantial fundraise, or a significant regulatory or credit action.",
+              "4": "Severe. Control changes, going-concern doubt, audit qualifications, trading bans, fraud, or an event that would plausibly halt trading."
+            },
+            "probabilities": {
+              "0": 0.0198,
+              "1": 0.1731,
+              "2": 0.5541,
+              "3": 0.1896,
+              "4": 0.0635
+            },
+            "confidence": 0.2552,
+            "answer_confidence": 0.5541,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "direction": {
+            "type": "noul",
+            "noul": 0.5929,
+            "confidence": 0.5929,
+            "answer_confidence": 0.5929,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "system1_calls": 1,
+        "system1_failures": 0,
+        "system2_calls": 0,
+        "system2_failures": 0,
+        "termination": "single_shot",
+        "terminated_ok": true,
+        "conclusion": "",
+        "abstained": false,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "s1_ms": 4779.2,
+        "s2_ms": 0.0,
+        "wall_ms": 4779.5,
+        "item_id": "clear_0029",
+        "stratum": "clear",
+        "annotator_confidence": 0.95,
+        "is_synthetic_text": true
+      }
+    ]
+  }
+}

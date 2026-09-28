@@ -86,7 +86,7 @@ class LayaSystem1:
         """True if the engine can be imported. Does not load a checkpoint."""
         try:
             import laya  # noqa: F401
-        except Exception:  # noqa: BLE001 - any import failure means unavailable
+        except Exception:
             return False
         return True
 
@@ -95,12 +95,12 @@ class LayaSystem1:
             return self._router
         try:
             from laya import Router
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise System1Unavailable(f"laya is not importable: {exc}") from exc
         try:
             self._router = Router()
             self._loaded_at = time.perf_counter()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise System1Unavailable(f"could not initialise laya Router: {exc}") from exc
         return self._router
 
@@ -167,7 +167,7 @@ class LayaSystem1:
 
         try:
             raw = router.predict(state_text, questions, **kwargs)
-        except Exception as exc:  # noqa: BLE001 - the engine has many failure shapes
+        except Exception as exc:
             log.warning("system1 predict failed: %s", exc)
             return System1Record(
                 turn_index=turn_index,

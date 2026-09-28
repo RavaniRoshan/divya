@@ -150,7 +150,7 @@ def peak_rss_mb() -> float:
         peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         # Linux reports KiB, macOS bytes.
         return round(peak / 1024, 1) if sys.platform != "darwin" else round(peak / 1024 / 1024, 1)
-    except Exception:  # noqa: BLE001 - measurement must never break the benchmark
+    except Exception:
         return -1.0
 
 

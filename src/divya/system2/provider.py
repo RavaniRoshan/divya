@@ -32,7 +32,13 @@ from typing import Any, Protocol, runtime_checkable
 import httpx
 from pydantic import ValidationError
 
-from divya.system2.turn import SYSTEM2_TURN_SCHEMA, System2Request, System2Turn, build_messages
+from divya.system2.turn import (
+    SYSTEM2_TURN_SCHEMA,
+    System2Request,
+    System2Turn,
+    TurnKind,
+    build_messages,
+)
 
 log = logging.getLogger(__name__)
 
@@ -290,14 +296,14 @@ class HeuristicProvider:
         if request.turn_index == 0:
             wanted = [d for d in self.primary if d in available and d not in asked]
             turn = System2Turn(
-                kind="call_system1",
+                kind=TurnKind.CALL_SYSTEM1,
                 decisions=wanted,
                 rationale="Initial pass: request tier-1 decisions for this event.",
             )
         elif self.escalation and not any(d in system1 for d in self.escalation):
             wanted = [d for d in self.escalation if d in available and d not in asked]
             turn = System2Turn(
-                kind="call_system1",
+                kind=TurnKind.CALL_SYSTEM1,
                 decisions=wanted,
                 rationale="Tier-1 complete; request evidence-quality decisions to test sufficiency.",
             )
@@ -308,14 +314,14 @@ class HeuristicProvider:
             )
             if best >= self.min_confidence:
                 turn = System2Turn(
-                    kind="finish",
+                    kind=TurnKind.FINISH,
                     conclusion=_conclusion_from(system1),
                     confidence=best,
                     rationale="System-1 confidence cleared the threshold.",
                 )
             else:
                 turn = System2Turn(
-                    kind="abstain",
+                    kind=TurnKind.ABSTAIN,
                     conclusion="No System-1 decision cleared the confidence threshold.",
                     confidence=0.0,
                     rationale="Max System-1 confidence was below the configured minimum.",
@@ -345,12 +351,10 @@ def _confidence_of(result: dict[str, Any]) -> float:
 
 def _conclusion_from(system1: dict[str, Any]) -> str:
     parts: list[str] = []
-    if ev := system1.get("event_type"):
-        if choice := ev.get("choice"):
-            parts.append(f"event type: {choice}")
-    if mat := system1.get("is_material"):
-        if isinstance(mat.get("probability"), int | float):
-            parts.append(f"material: P={mat['probability']:.2f}")
+    if choice := (system1.get("event_type") or {}).get("choice"):
+        parts.append(f"event type: {choice}")
+    if isinstance((mat := system1.get("is_material") or {}).get("probability"), int | float):
+        parts.append(f"material: P={mat['probability']:.2f}")
     return "; ".join(parts) or "no System-1 decision available"
 
 

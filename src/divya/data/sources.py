@@ -34,7 +34,6 @@ import io as _io
 import zipfile
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
-from typing import Any
 
 import httpx
 
@@ -133,9 +132,9 @@ def _require_licensed(source_id: str) -> LicenceVerdict:
 class FetchResult:
     """What an adapter returns: observations plus the provenance that explains them."""
 
-    observations: list[Observation] = field(default_factory=list)
     source_id: str
     licence: LicenceVerdict
+    observations: list[Observation] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     fetched_at: str = ""
 
