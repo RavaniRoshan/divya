@@ -970,3 +970,60 @@ better than a taxonomy that silently mislabels 75% of its own events.
 **KEPT FROM v3:** removing `other` from the choice head. It is right on its own terms —
 `event_type_determinable` gives unclassifiable documents a first-class answer, and a catch-all
 in a typed-decision head becomes where uncertainty goes.
+
+---
+
+## D-025 — 2026-09-28 — The binary gate discriminates correctly, and the choice head ignores it
+
+**DECISION.** Route on the gate rather than asking for everything in one prompt. Record the
+limit that motivated it.
+
+**RESULT (same 28 real filings).**
+
+| class | n | v2 | v3 (contrast clause) | v4 (binary gate) |
+|---|---|---|---|---|
+| capital_action | 13 | 0.62 | 0.44 | **0.00** |
+| m_and_a | 14 | 0.07 | 0.13 | **0.35** |
+| fundraise | 1 | 0.00 | 0.00 | 0.00 |
+| subset accuracy | 28 | — | 0.286 | 0.107 |
+
+**The gate itself is good.** Asking only "did the company transfer a business?":
+
+| truth | gate says yes | gate says no | correct |
+|---|---|---|---|
+| m_and_a | 10 | 4 | **71%** |
+| capital_action | 3 | 10 | **77%** |
+| fundraise | 1 | 0 | 0% (n=1) |
+
+**20 of 24 correct** on exactly the distinction the 9-way choice head could not make. The
+discrimination is *inside the model*; it just never reaches the classifier.
+
+**And the choice head still ignores it.** `m_and_a` improved 0.07 → 0.13 → 0.35 (four times
+better than v2, and it stopped going to `capital_action`: 11 of 14 → 1 of 14). But it now goes
+to **`fundraise` 6 of 14**, and `capital_action` collapsed to 0.00 because it too now leaks to
+`fundraise`.
+
+**THE FINDING.** *Laya answers each question independently. It cannot use one answer to
+constrain another.* A non-autoregressive encoder with a single forward pass over the whole
+question set has no mechanism for the composition "given that this transfers a business, the
+answer cannot be `capital_action`". The gate is a correct, high-precision discriminator that
+the classifier cannot hear.
+
+This is a **fundamental property of the architecture**, not a prompt defect, and D-024 already
+showed the prompt-shaped version of the same fix does not work. Together the two results say
+the constraint has to live in the **protocol routing**, not in the description and not in the
+question ordering.
+
+**CONSEQUENCE.** Hierarchical routing is now empirically motivated rather than fashionable —
+which is the only justification this project should ever accept for added complexity. The
+runtime asks `transfers_a_business` first and then asks a **restricted** question set: a
+transfer resolves to `m_and_a` without a choice at all, and only a non-transfer reaches a
+choice among the own-capital classes. This is exactly the "learned routing / confidence-aware
+routing" the research plan lists under Level 4, arrived at by measurement, and built against
+the cheapest possible routing — the engine's own answer, with no training.
+
+**WHAT WOULD OVERTURN IT.** If the routed protocol does not beat 0.35 on `m_and_a` without
+losing `capital_action`, the honest conclusion is that **Laya cannot separate these classes on
+filing text at all**, and the right response is to merge them into one class the engine can
+support rather than ship a taxonomy it cannot execute. A taxonomy that silently mislabels its
+own events is worse than a coarser one that does not.
