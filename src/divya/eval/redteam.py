@@ -212,15 +212,17 @@ TRIGGERS: dict[str, tuple[str, ...]] = {
         "quarterly results", "financial results", "revenue from operations", "profit after tax",
         "net profit", "earnings per share", "total income",
     ),
-    "capital_action": (
+    # v5 merged capital_action, fundraise and m_and_a into one class the decision engine can
+    # actually execute (DECISIONS D-026). The trigger vocabulary is the union of all three,
+    # because from the stub's point of view it is now one class.
+    "capital_event": (
+        # capital_action
         "dividend", "bonus issue", "bonus share", "buyback", "buy-back", "stock split",
         "rights issue", "subdivision of shares",
-    ),
-    "fundraise": (
+        # fundraise
         "issue of shares", "qualified institutional placement", "preferential issue",
         "follow-on offer", "initial public offer",
-    ),
-    "m_and_a": (
+        # m_and_a
         "acquisition of", "acquire", "amalgamation", "merger of", "demerger", "divestment",
         "scheme of arrangement", "stake in",
     ),
@@ -250,7 +252,7 @@ ADVERSE = frozenset({"regulatory_action", "credit_rating", "auditor_change"})
 
 #: Ordinal severity per class, for the `materiality` score. A stub's opinion, recorded as such.
 SEVERITY: dict[str, float] = {
-    "earnings_result": 3.0, "capital_action": 2.0, "fundraise": 3.0, "m_and_a": 3.0,
+    "earnings_result": 3.0, "capital_event": 3.0,
     "leadership_change": 1.0, "auditor_change": 2.0, "regulatory_action": 3.0,
     "credit_rating": 2.0, "board_meeting": 0.0, "other": 1.0,
 }

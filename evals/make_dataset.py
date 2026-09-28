@@ -93,7 +93,7 @@ CLEAR_EVENTS: list[dict[str, Any]] = [
         ),
     },
     {
-        "type": "capital_action",
+        "type": "capital_event",
         "band": 1,
         "direction": "neutral_or_favourable",
         "material": False,
@@ -106,7 +106,7 @@ CLEAR_EVENTS: list[dict[str, Any]] = [
         ),
     },
     {
-        "type": "capital_action",
+        "type": "capital_event",
         "band": 2,
         "direction": "neutral_or_favourable",
         "material": True,
@@ -118,7 +118,7 @@ CLEAR_EVENTS: list[dict[str, Any]] = [
         ),
     },
     {
-        "type": "capital_action",
+        "type": "capital_event",
         "band": 2,
         "direction": "neutral_or_favourable",
         "material": True,
@@ -130,7 +130,7 @@ CLEAR_EVENTS: list[dict[str, Any]] = [
         ),
     },
     {
-        "type": "capital_action",
+        "type": "capital_event",
         "band": 2,
         "direction": "adverse",
         "material": True,
@@ -166,7 +166,7 @@ CLEAR_EVENTS: list[dict[str, Any]] = [
         ),
     },
     {
-        "type": "m_and_a",
+        "type": "capital_event",
         "band": 4,
         "direction": "neutral_or_favourable",
         "material": True,
@@ -179,7 +179,7 @@ CLEAR_EVENTS: list[dict[str, Any]] = [
         ),
     },
     {
-        "type": "fundraise",
+        "type": "capital_event",
         "band": 3,
         "direction": "neutral_or_favourable",
         "material": True,
@@ -191,7 +191,7 @@ CLEAR_EVENTS: list[dict[str, Any]] = [
         ),
     },
     {
-        "type": "capital_action",
+        "type": "capital_event",
         "band": 2,
         "direction": "neutral_or_favourable",
         "material": True,
@@ -297,8 +297,8 @@ AMBIGUOUS: list[dict[str, Any]] = [
         ),
     },
     {
-        "label_type": "m_and_a",
-        "alt_type": "fundraise",
+        "label_type": "capital_event",
+        "alt_type": "capital_event",
         "band": 4,
         "direction": "neutral_or_favourable",
         "material": True,
@@ -378,7 +378,7 @@ NOISY: list[dict[str, Any]] = [
         "tpl": "{co} Ltd has received a notice from the regulator. Further details are being awaited.",
     },
     {
-        "type": "m_and_a",
+        "type": "capital_event",
         "band": 3,
         "direction": "neutral_or_favourable",
         "material": True,
@@ -455,7 +455,7 @@ ADVERSARIAL: list[dict[str, Any]] = [
         ),
     },
     {
-        "type": "m_and_a",
+        "type": "capital_event",
         "band": 4,
         "direction": "neutral_or_favourable",
         "material": True,
@@ -611,7 +611,9 @@ def main() -> int:
     print(f"wrote {len(items)} items to {p}")
     print("strata:", dict(strata))
     print("event_type coverage:", dict(sorted(types.items())))
-    missing = {"earnings_result", "capital_action", "fundraise", "m_and_a",
+    # v5 merged capital_action, fundraise and m_and_a into `capital_event` -- see
+    # src/divya/data/nse_taxonomy.py and DECISIONS D-026.
+    missing = {"earnings_result", "capital_event",
                "leadership_change", "auditor_change", "regulatory_action", "credit_rating",
                "board_meeting", "other"} - set(types)
     if missing:

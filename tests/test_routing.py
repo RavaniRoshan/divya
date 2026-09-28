@@ -2,17 +2,21 @@
 
 Routing is the one place in this system where the runtime chooses *which questions the engine
 is asked*, so it is the place where a bug could quietly become a decision the engine never
-made. These tests pin the two properties that prevent that:
+made. These tests pin the properties that prevent that:
 
-1. **A confident gate resolves the case, and the choice head is not asked.**
-2. **An unsure gate does not resolve, and the choice head decides.**
+1. **A confident "no event here" short-circuits, and `event_type` is never asked.**
+2. **An unsure gate, or a "yes", falls through and the choice head decides.**
+3. **Nothing is ever classified by the runtime itself** -- a resolved case records the gate's
+   own answer, and says which gate produced it.
 
-Plus the failure modes that would make routing worse than not having it: a gate that resolves
-when it shouldn't, a stage that silently drops answers, and provenance that lies about which
-question produced a label.
+Note the polarity: routing short-circuits on **no**, not yes. 77% of a real Indian
+announcement feed carries no corporate event, so that is the common case and the one worth
+spending no forward pass on. "There is no event here" is also itself the answer, and it is
+recorded as an absence rather than as a class, so nothing downstream can mistake one for the
+other.
 
-Stubbed, so the whole suite runs in well under a second. The real-engine cost of routing is
-measured by the harness, not here.
+Stubbed, so the suite runs in well under a second. The real-engine cost of routing is measured
+by the harness, not here.
 """
 
 from __future__ import annotations
@@ -47,7 +51,7 @@ class ScriptedSystem1:
         self.calls.append(names)
         answers: dict[str, object] = {}
         for n in names:
-            if n == "transfers_a_business":
+            if n == "event_type_determinable":
                 v = self.gate
                 answers[n] = {"type": "noul", "noul": v, "confidence": v}
             elif n == "event_type":
@@ -68,36 +72,41 @@ class ScriptedSystem1:
 TEXT = "The Company approved the acquisition of 51 per cent of Target Limited for Rs 2,300 crore."
 
 
+def _value(res):
+    return res.answers["event_type"]["choice"]
+
+
 # --- the resolution rule --------------------------------------------------
 
 
-def test_confident_gate_resolves_and_the_choice_head_is_skipped():
-    """The whole point. A decisive gate must save the question, not merely precede it."""
-    stub = ScriptedSystem1(gate=0.95, choice="fundraise")
+def test_confident_no_event_short_circuits_and_the_classification_is_skipped():
+    """The whole point. A decisive "no event" must SAVE the question, not merely precede it."""
+    stub = ScriptedSystem1(gate=0.20, choice="capital_event")  # gate says NOT determinable
     res = RoutedDecider(system1=stub, gate_confidence=0.70).decide(TEXT)
 
-    assert res.answers["event_type"]["choice"] == "m_and_a"
-    assert res.resolved_by["event_type"] == "gate:transfers_a_business"
-    # The choice head was not asked for event_type at all.
+    assert _value(res) is None, "an unclassifiable document is not a class"
+    assert res.resolved_by["event_type"] == "gate:event_type_determinable"
+    # The choice head was never asked for event_type.
     assert all("event_type" not in c for c in stub.calls[1:]), stub.calls
-    assert len(stub.calls) == 2, "gate stage then remaining stage"
+    assert len(stub.calls) == 2, "gate stage, then whatever is left"
 
 
-def test_unsure_gate_falls_through_to_the_choice_head():
-    """A gate below the threshold must not decide. The 0.5-0.73 band is where ECE is 0.18."""
-    stub = ScriptedSystem1(gate=0.30, choice="fundraise")
+def test_a_yes_always_falls_through_to_the_choice_head():
+    """A YES is not sufficient to name a class. Only a NO short-circuits."""
+    stub = ScriptedSystem1(gate=0.95, choice="capital_event")
     res = RoutedDecider(system1=stub, gate_confidence=0.70).decide(TEXT)
 
     assert res.resolved_by == {}
-    assert res.answers["event_type"]["choice"] == "fundraise"
+    assert _value(res) == "capital_event"
     assert any("event_type" in c for c in stub.calls[1:])
 
 
 def test_gate_threshold_is_configurable():
-    strict = RoutedDecider(system1=ScriptedSystem1(gate=0.80), gate_confidence=0.90).decide(TEXT)
+    """A gate below threshold must not short-circuit, however sure its polarity is."""
+    strict = RoutedDecider(system1=ScriptedSystem1(gate=0.20), gate_confidence=0.90).decide(TEXT)
     assert strict.resolved_by == {}
 
-    loose = RoutedDecider(system1=ScriptedSystem1(gate=0.80), gate_confidence=0.70).decide(TEXT)
+    loose = RoutedDecider(system1=ScriptedSystem1(gate=0.20), gate_confidence=0.70).decide(TEXT)
     assert loose.resolved_by != {}
 
 
@@ -134,9 +143,9 @@ def test_the_route_is_recorded_and_reproducible():
 
 
 def test_a_routed_answer_records_which_question_produced_it():
-    """A reader must be able to tell whether a gate or the classifier labelled an event."""
-    res = RoutedDecider(system1=ScriptedSystem1(gate=0.95)).decide(TEXT)
-    assert res.answers["event_type"]["resolved_by"] == "gate:transfers_a_business"
+    """A reader must be able to tell a gate decision from a classifier decision."""
+    res = RoutedDecider(system1=ScriptedSystem1(gate=0.20)).decide(TEXT)
+    assert res.answers["event_type"]["resolved_by"] == "gate:event_type_determinable"
 
 
 def test_routing_never_invents_a_decision_the_engine_did_not_make():
@@ -146,10 +155,13 @@ def test_routing_never_invents_a_decision_the_engine_did_not_make():
     class the engine never mentioned, which is what would make this an 'agent' rather than a
     protocol.
     """
-    res = RoutedDecider(system1=ScriptedSystem1(gate=0.95)).decide(TEXT)
-    gate = res.answers["transfers_a_business"]
-    assert gate["noul"] >= 0.5, "the gate must actually have said yes"
-    assert res.answers["event_type"]["choice"] == "m_and_a"
+    res = RoutedDecider(system1=ScriptedSystem1(gate=0.20)).decide(TEXT)
+    gate = res.answers["event_type_determinable"]
+    assert gate["noul"] < 0.5, "the gate must actually have said no"
+    # The runtime recorded an ABSENCE, not a class. Anything downstream that reads
+    # `choice` must be able to see the difference.
+    assert res.answers["event_type"]["choice"] is None
+    assert res.answers["event_type"]["probabilities"] == {}
 
 
 def test_degrades_rather_than_raising_when_the_engine_is_missing():

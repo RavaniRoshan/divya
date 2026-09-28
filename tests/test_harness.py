@@ -41,9 +41,9 @@ PROTOCOL = load_protocol()
 
 
 def test_score_event_type_reads_the_probability_of_the_chosen_option():
-    ans = {"type": "choice", "choice": "capital_action",
-           "probabilities": {"capital_action": 0.42, "other": 0.11}, "confidence": 0.9}
-    assert H.score_event_type(ans) == ("capital_action", 0.42)
+    ans = {"type": "choice", "choice": "capital_event",
+           "probabilities": {"capital_event": 0.42, "other": 0.11}, "confidence": 0.9}
+    assert H.score_event_type(ans) == ("capital_event", 0.42)
 
 
 def test_score_event_type_falls_back_to_the_stated_confidence():
@@ -171,18 +171,18 @@ def _rec(
 #:   risks: 0/1=0, 1/2=0.5, 1/3=0.3333, 2/4=0.5 -> mean = 1.3333/4 = 0.3333
 HAND_IDS = ("r1", "r2", "r3", "r4")
 HAND_RECORDS = [
-    _rec("r1", "capital_action", 0.90, wall_ms=100.0),
-    _rec("r2", "capital_action", 0.20, wall_ms=200.0),
+    _rec("r1", "capital_event", 0.90, wall_ms=100.0),
+    _rec("r2", "capital_event", 0.20, wall_ms=200.0),
     _rec("r3", "leadership_change", 0.80, wall_ms=300.0, answers={
         "event_type": {"type": "choice", "choice": "other",
                        "probabilities": {"other": 0.80}, "confidence": 0.80}}),
-    _rec("r4", "capital_action", 0.0, wall_ms=400.0, answers={}),
+    _rec("r4", "capital_event", 0.0, wall_ms=400.0, answers={}),
 ]
 HAND_ITEMS = {i.id: i for i in (
-    _item("r1", "capital_action"),
-    _item("r2", "capital_action"),
-    _item("r3", "capital_action"),
-    _item("r4", "capital_action"),
+    _item("r1", "capital_event"),
+    _item("r2", "capital_event"),
+    _item("r3", "capital_event"),
+    _item("r4", "capital_event"),
 )}
 
 
@@ -197,9 +197,9 @@ def test_aggregate_matches_the_hand_computed_values():
     # A label that only ever appears in `y_pred` contributes no class row, so the reader cannot
     # mistake "invented a class we never asked about" for "got a class wrong".
     assert "__none__" not in out["event_type"]["per_class"]
-    assert out["event_type"]["per_class"]["capital_action"]["recall"] == 0.5
-    assert out["event_type"]["per_class"]["capital_action"]["support"] == 4.0
-    assert out["event_type"]["per_class"]["capital_action"]["precision"] == 1.0
+    assert out["event_type"]["per_class"]["capital_event"]["recall"] == 0.5
+    assert out["event_type"]["per_class"]["capital_event"]["support"] == 4.0
+    assert out["event_type"]["per_class"]["capital_event"]["precision"] == 1.0
     # mean wall_ms of 100/200/300/400 = 250.0
     assert out["cost"]["wall_ms_mean"] == 250.0
     assert out["reliability"]["terminated_ok_rate"] == 1.0
@@ -209,9 +209,9 @@ def test_aggregate_matches_the_hand_computed_values():
 
 def test_an_arm_that_answers_nothing_scores_zero_accuracy_not_a_skip():
     """Refusing to answer cannot improve a calibration number by opting out of being scored."""
-    silent = [_rec("r1", "capital_action", 0.0, answers={}),
-              _rec("r2", "capital_action", 0.0, answers={})]
-    items = {"r1": _item("r1", "capital_action"), "r2": _item("r2", "capital_action")}
+    silent = [_rec("r1", "capital_event", 0.0, answers={}),
+              _rec("r2", "capital_event", 0.0, answers={})]
+    items = {"r1": _item("r1", "capital_event"), "r2": _item("r2", "capital_event")}
     out = H.aggregate(silent, items)
     assert out["event_type"]["accuracy"] == 0.0
     assert out["calibration"]["brier_event_type"] == 0.0, (
@@ -232,22 +232,22 @@ def test_aggregate_reports_absent_labels_as_not_evaluated():
 def test_aggregate_scores_the_ordinal_and_binary_decisions_when_labelled():
     items = {
         "r1": H.Item(id="r1", stratum="clear", content="t",
-                     labels={"event_type": "capital_action", "is_material": True, "materiality": 2},
+                     labels={"event_type": "capital_event", "is_material": True, "materiality": 2},
                      annotator_confidence=0.0),
         "r2": H.Item(id="r2", stratum="clear", content="t",
-                     labels={"event_type": "capital_action", "is_material": False, "materiality": 0},
+                     labels={"event_type": "capital_event", "is_material": False, "materiality": 0},
                      annotator_confidence=0.0),
     }
     records = [
-        _rec("r1", "capital_action", 0.9, answers={
-            "event_type": {"type": "choice", "choice": "capital_action",
-                           "probabilities": {"capital_action": 0.9}, "confidence": 0.9},
+        _rec("r1", "capital_event", 0.9, answers={
+            "event_type": {"type": "choice", "choice": "capital_event",
+                           "probabilities": {"capital_event": 0.9}, "confidence": 0.9},
             "is_material": {"type": "noul", "noul": 0.8, "confidence": 0.8},
             "materiality": {"type": "score", "score": 2.4, "confidence": 0.5},
         }),
-        _rec("r2", "capital_action", 0.9, answers={
-            "event_type": {"type": "choice", "choice": "capital_action",
-                           "probabilities": {"capital_action": 0.9}, "confidence": 0.9},
+        _rec("r2", "capital_event", 0.9, answers={
+            "event_type": {"type": "choice", "choice": "capital_event",
+                           "probabilities": {"capital_event": 0.9}, "confidence": 0.9},
             "is_material": {"type": "noul", "noul": 0.3, "confidence": 0.3},
             "materiality": {"type": "score", "score": 1.0, "confidence": 0.5},
         }),
@@ -265,14 +265,14 @@ def test_aggregate_scores_the_ordinal_and_binary_decisions_when_labelled():
 def test_aggregate_stratum_splits_without_doubling_counting():
     records = [
         *HAND_RECORDS,
-        _rec("r5", "capital_action", 0.95, "ambiguous"),
+        _rec("r5", "capital_event", 0.95, "ambiguous"),
         _rec("r6", "other", 0.10, "ambiguous", answers={
             "event_type": {"type": "choice", "choice": "other",
                            "probabilities": {"other": 0.10}, "confidence": 0.10}}),
     ]
     items = dict(HAND_ITEMS)
-    items["r5"] = _item("r5", "capital_action", "ambiguous")
-    items["r6"] = _item("r6", "capital_action", "ambiguous")
+    items["r5"] = _item("r5", "capital_event", "ambiguous")
+    items["r6"] = _item("r6", "capital_event", "ambiguous")
     out = H.aggregate(records, items)
     assert set(out["by_stratum"]) == {"clear", "ambiguous"}
     assert out["by_stratum"]["clear"]["n"] == 4
@@ -310,11 +310,11 @@ def test_aggregate_on_an_empty_record_set_does_not_divide_by_zero():
 
 def test_unnecessary_system1_calls_are_counted():
     records = [
-        _rec("r1", "capital_action", 0.9, s1_calls=1),
-        _rec("r2", "capital_action", 0.9, s1_calls=3),
-        _rec("r3", "capital_action", 0.9, s1_calls=0),
+        _rec("r1", "capital_event", 0.9, s1_calls=1),
+        _rec("r2", "capital_event", 0.9, s1_calls=3),
+        _rec("r3", "capital_event", 0.9, s1_calls=0),
     ]
-    items = {i: _item(i, "capital_action") for i in ("r1", "r2", "r3")}
+    items = {i: _item(i, "capital_event") for i in ("r1", "r2", "r3")}
     out = H.aggregate(records, items)
     assert out["cost"]["unnecessary_system1_calls"] == 2
     assert out["cost"]["system1_calls_mean"] == pytest.approx(1.333, abs=1e-3)
@@ -367,7 +367,7 @@ def _runner(arm: str, **kw: Any) -> H.ArmRunner:
 
 def test_arm_dispatch_rejects_an_unknown_arm():
     with pytest.raises(ValueError, match="unknown arm"):
-        asyncio.run(_runner("Z").run_item(_item("x", "capital_action")))
+        asyncio.run(_runner("Z").run_item(_item("x", "capital_event")))
 
 
 def test_dispatch_table_covers_exactly_the_four_arms():
@@ -378,11 +378,11 @@ def test_dispatch_table_covers_exactly_the_four_arms():
 
 
 def test_arm_a_calls_system1_once_and_no_reasoning_model():
-    rec = asyncio.run(_runner("A").run_item(_item("x", "capital_action")))
+    rec = asyncio.run(_runner("A").run_item(_item("x", "capital_event")))
     assert rec["system1_calls"] == 1
     assert rec["system2_calls"] == 0
     assert rec["termination"] == "single_shot"
-    assert rec["answers"]["event_type"]["choice"] == "capital_action"
+    assert rec["answers"]["event_type"]["choice"] == "capital_event"
     assert rec["terminated_ok"] is True
     assert rec["abstained"] is False
     assert rec["item_id"] == "x" and rec["stratum"] == "clear"
@@ -390,7 +390,7 @@ def test_arm_a_calls_system1_once_and_no_reasoning_model():
 
 
 def test_arm_b_never_calls_system1_and_carries_no_answers():
-    rec = asyncio.run(_runner("B").run_item(_item("x", "capital_action")))
+    rec = asyncio.run(_runner("B").run_item(_item("x", "capital_event")))
     assert rec["system1_calls"] == 0
     assert rec["system2_calls"] >= 1
     assert rec["answers"] == {}, "arm B is System-2 alone; it must not smuggle in a System-1 answer"
@@ -402,17 +402,17 @@ def test_arm_b_never_calls_system1_and_carries_no_answers():
 
 
 def test_arm_c_makes_exactly_one_system1_call():
-    rec = asyncio.run(_runner("C").run_item(_item("x", "capital_action")))
+    rec = asyncio.run(_runner("C").run_item(_item("x", "capital_event")))
     assert rec["system1_calls"] == 1
     assert rec["c_samples"] == 1
     assert rec["system2_calls"] >= 1
-    assert rec["answers"]["event_type"]["choice"] == "capital_action"
+    assert rec["answers"]["event_type"]["choice"] == "capital_event"
     assert rec["termination"] == "max_turns", "arm C is configured with max_turns=1 by design"
 
 
 def test_arm_c_repeats_and_majority_votes():
     runner = _runner("C", c_samples=3)
-    rec = asyncio.run(runner.run_item(_item("x", "capital_action")))
+    rec = asyncio.run(runner.run_item(_item("x", "capital_event")))
     assert rec["c_samples"] == 3
     assert rec["system1_calls"] == 3
     with pytest.raises(IndexError):
@@ -421,24 +421,24 @@ def test_arm_c_repeats_and_majority_votes():
 
 def test_majority_vote_records_a_tie_instead_of_pretending_it_is_a_consensus():
     runs = [
-        _run_with(("earnings_result", 0.4), ("capital_action", 0.6)),
-        _run_with(("capital_action", 0.4), ("earnings_result", 0.6)),
+        _run_with(("earnings_result", 0.4), ("capital_event", 0.6)),
+        _run_with(("capital_event", 0.4), ("earnings_result", 0.6)),
     ]
     merged = _runner("C")._majority_vote(runs)
     assert merged["vote_tie"] is True
     assert merged["answers"]["event_type"]["vote_counts"] == {"earnings_result": 1,
-                                                              "capital_action": 1}
+                                                              "capital_event": 1}
     # The docstring claims a tie "falls back to the first sample". It does not: `max` over the
     # tally returns whichever label the tally dict saw first, which is the order System-1
     # happened to emit. Pinned here as-is so the fix is deliberate. See docs/loop/REDTOOM.md.
-    assert merged["answers"]["event_type"]["choice"] == "capital_action"
+    assert merged["answers"]["event_type"]["choice"] == "capital_event"
 
 
 def test_majority_vote_picks_the_real_majority():
     runs = [
         _run_with(("earnings_result", 0.4)),
         _run_with(("earnings_result", 0.4)),
-        _run_with(("capital_action", 0.6)),
+        _run_with(("capital_event", 0.6)),
     ]
     merged = _runner("C")._majority_vote(runs)
     assert merged["vote_tie"] is False
@@ -446,13 +446,13 @@ def test_majority_vote_picks_the_real_majority():
 
 
 def test_majority_vote_of_one_run_is_the_run_itself():
-    runs = [_run_with(("capital_action", 0.9))]
+    runs = [_run_with(("capital_event", 0.9))]
     merged = _runner("C")._majority_vote(runs)
     assert merged == {"answers": runs[0].state.latest_system1, "vote_tie": False}
 
 
 def test_arm_d_can_escalate_beyond_tier_one():
-    rec = asyncio.run(_runner("D", d_max_turns=4).run_item(_item("x", "capital_action")))
+    rec = asyncio.run(_runner("D", d_max_turns=4).run_item(_item("x", "capital_event")))
     assert "event_type" in rec["answers"]
     assert rec["system2_calls"] >= 1
     assert rec["terminated_ok"] is True

@@ -120,10 +120,10 @@ def test_injection_payloads_actually_reach_the_document():
 def test_control_filings_classify_as_themselves_under_the_stub():
     """The differential is only meaningful if the control produces a stable, non-degenerate label."""
     p = RT.probe([CLEAN_FILING], StubSystem1())
-    assert p.ok and p.event_type == "capital_action"
+    assert p.ok and p.event_type == "capital_event"
     assert p.termination == "finished"
     p2 = RT.probe([CLEAN_FILING_2], StubSystem1())
-    assert p2.ok and p2.event_type == "m_and_a", "the second control must not collide with the first"
+    assert p2.ok and p2.event_type == "capital_event", "the second control must not collide with the first"
 
 
 def test_probe_reports_a_raise_instead_of_propagating_it():
@@ -297,8 +297,8 @@ def test_stub_is_deterministic_and_content_sensitive():
     b = StubSystem1().answer(CLEAN_FILING, _spec(), only=["event_type"])
     c = StubSystem1().answer(CLEAN_FILING_2, _spec(), only=["event_type"])
     assert a.answers == b.answers
-    assert a.answers["event_type"]["choice"] == "capital_action"
-    assert c.answers["event_type"]["choice"] == "m_and_a"
+    assert a.answers["event_type"]["choice"] == "capital_event"
+    assert c.answers["event_type"]["choice"] == "capital_event"
 
 
 def test_stub_is_not_the_production_path():

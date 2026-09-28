@@ -89,7 +89,7 @@ def test_render_does_not_raise_on_a_stub_backed_run():
 def test_render_shows_the_typed_answer_and_its_confidence():
     out = _render(_result())
     assert "event_type" in out
-    assert "capital_action" in out
+    assert "capital_event" in out
     # Confidence and its source are on screen together, per the module's first design rule.
     assert "conf" in out
     assert "0." in out

@@ -32,7 +32,7 @@ specs:
   # terminal that cannot explain itself is worse than no terminal.
   # ---------------------------------------------------------------------------
   - name: event_triage
-    version: 4
+    version: 5
     purpose: >-
       Classify a single Indian corporate disclosure into one event type, grade its
       materiality, and establish its direction. This is the minimum set a single-shot
@@ -53,42 +53,6 @@ specs:
     # question is split: `event_type_determinable` gates it, and the choice head runs only on
     # documents that have an event in them. See D-021 and E-009.
     questions:
-
-      - name: transfers_a_business
-        type: noul
-        tier: 1
-        purpose: >-
-          Binary discriminator between the three classes that share vocabulary -- m_and_a,
-          capital_action and fundraise -- and which the 9-way choice head demonstrably cannot
-          separate.
-        instructions: >-
-          Decide the single question that separates them. Did the company TRANSFER a business --
-          buy, sell, merge with, demerge from, or take a stake in another company, a subsidiary,
-          a joint venture or an associate? Answer yes for a transaction where the company is a
-          buyer or seller of ANOTHER business. Answer no for anything where the company changes
-          its OWN share count, pays a dividend or buys back its OWN shares, or issues NEW shares
-          or securities to raise money. An acquisition described with share counts, percentages
-          and consideration is still a transfer of a business, and is "yes".
-        criteria:
-          "false": >-
-            The company changed its own capital structure or paid its own shareholders:
-            dividend, buyback, bonus, rights issue, split, subdivision, or it issued new shares
-            or securities to raise money.
-          "true": >-
-            The company bought, sold, merged, demerged, or took a stake in ANOTHER company or
-            business, including a wholly owned or step-down subsidiary.
-        labels:
-          "false": own capital only
-          "true": transfers a business
-        calibration_expectation: >-
-          Expected to be high-confidence. This is a question about the transaction's object, not
-          an evaluation of it, and a 9-way choice head demonstrably fails at it while a binary
-          one has a chance.
-        known_failure_modes:
-          - A subsidiary restructuring presented as a group transaction can read either way.
-          - A share swap between two listed companies is both a transfer and a capital change.
-        downstream_consumers:
-          - event_type
 
       - name: event_type_determinable
         type: noul
@@ -137,14 +101,13 @@ specs:
           earnings_result: >-
             Quarterly or annual financial results: revenue, profit, EPS, margins, or a
             comparison against prior periods or guidance.
-          capital_action: >-
-            Dividend, dividend increase, dividend-policy change, share buyback, bonus issue,
-            rights issue, stock split or subdivision of the company's own shares.
-          fundraise: >-
-            Raising new capital: an issue of shares, warrants or debt, or an IPO.
-          m_and_a: >-
-            Acquisition, disposal, merger, demerger, joint venture, or a stake taken in a
-            subsidiary or associate.
+          capital_event: >-
+            A board action that changes the company's capital, its ownership of another
+            business, or its share count. Covers ALL of: dividend and dividend-policy change;
+            share buyback, bonus issue, rights issue, stock split, subdivision; issuing new
+            shares, warrants or debt to raise money; and acquiring, disposing of, merging with,
+            demerging from, or taking a stake in another company, subsidiary, joint venture or
+            associate.
           leadership_change: >-
             Appointment, resignation, or retirement of a director, promoter, or key executive.
           auditor_change: >-

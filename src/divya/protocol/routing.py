@@ -50,16 +50,29 @@ from divya.runtime.state import SharedState, System1Record
 from divya.system1.laya_adapter import LayaSystem1, NullSystem1
 from divya.system2.provider import HeuristicProvider
 
-#: Gate -> the class it resolves to outright, and the classes left to a choice head.
-#: A gate resolves a case only when it is decisive; anything it leaves open goes to `choice`.
+#: Which questions are asked, in which pass, and when a pass resolves the case outright.
+#:
+#: This used to route on `transfers_a_business`, a binary gate separating m_and_a from
+#: capital_action/fundraise. Measurement removed that need: the engine could not separate those
+#: three (D-024, D-025) and they are now one class, `capital_event` (D-026).
+#:
+#: What remains is the gate from v3, `event_type_determinable`, and it earns its place for a
+#: different reason. **77% of a real Indian announcement feed contains no corporate event.**
+#: Asking a nine-way classification about a filing that contains no event is a forward pass
+#: spent to produce a confident wrong answer, so determinability is asked FIRST and the
+#: classification is only asked when the answer is yes.
+#:
+#: Unlike the previous gate, a *negative* answer resolves the case rather than the positive
+#: one, because "there is no event here" is the common case and the thing worth short-circuiting.
 DEFAULT_ROUTES: dict[str, dict[str, Any]] = {
-    "transfers_a_business": {
+    "event_type_determinable": {
         "spec": "event_triage",
-        "when": True,
-        "resolve_to": "m_and_a",
-        "otherwise": {
-            "choice_over": ["capital_action", "fundraise", "board_meeting", "other"],
-        },
+        # Resolve when the gate says NO -- no classifiable event -- and leave the event
+        # unclassified. A YES is not sufficient on its own to name a class, so it falls
+        # through to the choice head.
+        "resolve_when": "no",
+        "resolve_to": None,
+        "otherwise": "ask_event_type",
     },
 }
 
@@ -202,31 +215,43 @@ class RoutedDecider:
         out.route_taken.append(f"gate:{','.join(stage1_names)}")
 
         # Resolve from the gate when it is decisive.
-        # A confident gate resolves the case. A low-confidence one does not, because the
-        # 0.5-0.73 band is exactly where Laya measured ECE 0.18 and a borderline gate must not
-        # silently decide.
-        resolved_value: str | None = None
+        # A confident gate resolves the case. A hesitant one does not, and must not: the
+        # 0.5-0.73 band is exactly where Laya measured ECE 0.18, and a borderline gate
+        # deciding silently is worse than spending the forward pass.
+        #
+        # `noul` is P(the statement is true), so a gate that answers NO with noul=0.2 is
+        # 0.8 confident in "no". Comparing the raw noul against a confidence threshold -- which
+        # is what the first version did -- asks a question about the answer's polarity while
+        # pretending to ask about certainty, and it never fires.
+        resolved = False
         if gate_name and gate_name in answers:
+            route = self.routes.get(gate_name, {})
             p = _confidence(answers, gate_name)
-            if p is not None and p >= self.gate_confidence:
-                resolved_value = self.routes.get(gate_name, {}).get("resolve_to")
-        if resolved_value is not None and "event_type" not in out.answers:
-            # The gate answered a question ABOUT the event, and a confident gate answers the
-            # classification too. The engine's own answer is recorded verbatim, and the fact
-            # that a gate resolved it rather than the choice head is recorded alongside --
-            # because a reader must be able to tell which question produced the label.
-            out.answers["event_type"] = {
-                "type": "choice", "choice": resolved_value,
-                "confidence": _confidence(answers, gate_name or ""), "probabilities": {},
-                "resolved_by": f"gate:{gate_name}",
-            }
-            out.resolved_by["event_type"] = f"gate:{gate_name}"
+            if p is not None:
+                certainty = max(p, 1.0 - p)
+                says_no = p < 0.5
+                wants_no = route.get("resolve_when") == "no"
+                if certainty >= self.gate_confidence and says_no == wants_no:
+                    # "There is no classifiable event here" is itself the answer, and it is
+                    # recorded as an ABSENCE rather than as a class, so nothing downstream can
+                    # mistake one for the other.
+                    out.answers["event_type"] = {
+                        "type": "choice", "choice": None, "probabilities": {},
+                        "confidence": round(certainty, 4), "resolved_by": f"gate:{gate_name}",
+                    }
+                    out.resolved_by["event_type"] = f"gate:{gate_name}"
+                    resolved = True
+        # When the gate resolved, the classification is deliberately NOT asked.
+        skip = {"event_type"} if resolved else set()
 
         # Stage 2: whatever the gate did not resolve.
         remaining = [
             q.name
             for q in spec.questions
-            if q.tier == 1 and q.name not in out.answers and q.name not in stage1_names
+            if q.tier == 1
+            and q.name not in out.answers
+            and q.name not in stage1_names
+            and q.name not in skip
         ]
         if remaining:
             answers2, rec2, ms2 = self._ask(spec, remaining, state)
