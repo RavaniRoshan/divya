@@ -12,7 +12,12 @@ build/
 *.bin
 *.gguf
 data/cache/
-# Per-run traces and the local store are runtime state, not source. One example trace is kept
-# deliberately at docs/example-trace.json so the audit format is visible without running anything.
-data/traces/
+# Runtime state. The store is derived from the exchange and rebuilds with `divya index`.
 data/store/
+data/traces/
+data/sessions/
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/*.tsbuildinfo
+frontend/shot.mjs

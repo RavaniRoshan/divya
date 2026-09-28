@@ -288,7 +288,9 @@ def investigation(
     return UIIntent(
         kind=WorkspaceKind.INVESTIGATION,
         title=f"Investigation {task_id}",
-        reason=status,
+        # `reason` is left empty: the workspace renders the status as a badge, and setting it
+        # here printed "active" twice in the header.
+        reason="",
         payload={"steps": steps, "status": status},
         route="/investigate",
         partial=status == "in_progress",
