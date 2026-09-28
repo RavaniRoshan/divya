@@ -11,7 +11,8 @@ SRC := src
 
 .DEFAULT_GOAL := help
 .PHONY: help setup setup-full test lint typecheck check fixtures bench doctor decide \
-        eval eval-real protocol clean docker-verify
+        eval eval-real protocol clean docker-verify serve up frontend-install \
+        frontend-build frontend-dev bench-resources
 
 help:  ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -77,6 +78,22 @@ eval-real:  ## A/B/C/D on REAL NSE announcements. Rebuild the dataset first if i
 
 fetch:  ## pull 7 days of live NSE announcements into data/store
 	PYTHONPATH=$(SRC) $(BIN)/python -m divya.cli fetch nse-announcements --days 7 --limit 500
+
+# --- web frontend (Space UI) ---------------------------------------------
+frontend-install:  ## install frontend dependencies
+	cd frontend && pnpm install
+
+frontend-build:  ## typecheck + lint + production build
+	cd frontend && pnpm exec tsc --noEmit && pnpm exec eslint src && pnpm build
+
+frontend-dev:  ## run the Space UI dev server on :3000
+	cd frontend && pnpm dev
+
+serve:  ## run the API on 127.0.0.1:8000
+	PYTHONPATH=$(SRC) $(BIN)/python -m divya.api
+
+up:  ## api + frontend together (two terminals; the api is the source of truth)
+	@echo "1) make serve    2) make frontend-dev    then open http://localhost:3000"
 
 docker-verify:  ## run the compose path. Only meaningful where docker exists.
 	@command -v docker >/dev/null 2>&1 || { \

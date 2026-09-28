@@ -120,12 +120,42 @@ redistribute a build with the data baked in. The per-source verdict lives in
 
 ---
 
-## The terminal
+## The web terminal (Space UI)
+
+The primary surface. Conversational control, dynamic analytical workspaces, built on
+**Space UI** — a shadcn-compatible registry of 252 items at `spaceui.one/r/{name}.json`
+(React 19 · Next 16 · Tailwind v4 · `@base-ui/react` · `motion`). The stack was verified against
+the ecosystem's own sources, not assumed. See [docs/architecture/FRONTEND.md](docs/architecture/FRONTEND.md).
 
 ```bash
-divya index --days 2 --limit 500     # ingest live NSE announcements into a local store
-divya terminal                       # launch the TUI
+divya index --days 2 --limit 500     # ingest live NSE announcements
+divya serve                          # API on 127.0.0.1:8000
+cd frontend && pnpm install && pnpm dev    # http://localhost:3000
 ```
+
+You type intent; the backend builds the workspace:
+
+```
+"What changed materially across the market today?"   →  market workspace, 17 events, ranked by
+                                                        System-1 materiality
+"Why is AIIL high priority?"                        →  investigation workspace, AIIL attached
+"Show me the evidence."                              →  evidence workspace, sources + retrieval times
+```
+
+Follow-ups **continue the same task** — entities are preserved and scope narrows rather than
+resetting. The language model never renders: it emits a closed enum of typed UI intents
+(`SHOW_COMPANY`, `SHOW_COMPARISON`, `SHOW_SCREEN`, …) that the frontend renders. That is a
+security boundary, not a style choice — text inside a filing must not be able to choose what
+component appears.
+
+Screenshots: [`frontend/screenshots/`](frontend/screenshots/) — idle, market workspace,
+follow-up. Zero console errors, verified in Chromium.
+
+## The terminal
+
+A local Textual TUI over the same store, for when the web surface is not wanted. It is the
+*audit* path: it renders one decision with its full provenance and writes a reconstructable
+trace.
 
 Event stream · detail · company list · a "why" evidence chain · decision state · freshness ·
 model versions, all keyboard-driven:
