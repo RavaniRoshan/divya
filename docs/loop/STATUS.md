@@ -8,9 +8,9 @@ The plan is complete. The thesis is measured and **rejected on this data**; the 
 with the evidence-appropriate default; the red team found a real prompt injection and all 15
 defects are fixed; and the conversational Space UI surface is built and verified in a browser.
 
-One experiment remains in flight: re-running the A/B/C/D evaluation on **full filing text**
-rather than 154-character summaries. It does not change any decision; it quantifies the largest
-caveat on the headline result.
+The full-filing-text re-run has landed and it **changed the picture materially** — see below. The
+one clearly next experiment is now to diagnose the `m_and_a` regression before shipping protocol
+v3, because it may be the `other` problem reappearing.
 
 ## WHAT CHANGED
 
@@ -53,6 +53,42 @@ excluding zero; P(Δ<0) = 0.9984.
 
 **H1 rejected · H2 rejected · H3 supported · H4 not supported · H5 (specialised System-2)
 untested — the only 4B model that fits the RAM budget takes 42–64 s/call.**
+
+### `[RESULT]` Full filing text: three classes fixed, one broken, loop destroyed
+
+Same 120 filings, same labels, same protocol v2. Only difference: 107 of 120 items carry the
+real PDF text instead of a 154-character summary — **25.3× more text**.
+
+| arm | accuracy | ECE | AURC | p95 |
+|---|---|---|---|---|
+| A System-1 alone | 0.558 → **0.475** | 0.096 → 0.141 | 0.240 → 0.356 | 4.7 s → **57.7 s** |
+| C System-2 → System-1 | 0.558 → 0.475 | 0.096 → 0.141 | 0.240 → 0.356 | 19.0 s → 48.8 s |
+| D recurrent | 0.508 → **0.142** | 0.080 → 0.058 | 0.260 → **0.649** | 40.4 s → **90.0 s** |
+
+The aggregate says accuracy fell 8 points. Per class:
+
+| class | n | F1 summary → filing | |
+|---|---|---|---|
+| earnings_result | 4 | 0.33 → **0.80** | fixed |
+| capital_action | 13 | **0.00 → 0.39** | **fixed from zero** |
+| regulatory_action | 17 | **0.00 → 0.30** | **fixed from zero** |
+| m_and_a | 14 | 0.67 → **0.13** | **badly regressed** |
+| leadership_change | 43 | 0.88 → 0.70 | regressed |
+| credit_rating | 8 | 0.94 → 0.94 | unchanged |
+
+**The three structurally broken classes now work**, two from exactly zero — because summaries
+omitted the figures that identify the event, which is the mechanism `other` was exploiting. The
+largest quality movement in the project. But `m_and_a` breaks: on real acquisition filings the
+engine now has enough text to be confidently wrong where on summaries it fell through to the
+right answer by accident.
+
+**And the recurrent loop stops working entirely** — 0.142, AURC 0.649, p95 over 90 s. The
+negative result on the loop is **not** an artefact of short documents; it is worse on real ones.
+
+**The headline 0.558 therefore describes a system reading one-line summaries** and is not
+quoted without this beside it. **Latency is now the binding constraint, not accuracy**: 12× for
+one item. The obvious fix — classify on the summary, re-read the filing only for the ambiguous
+minority — is **not built**. Neither run used protocol v3, which began after both launched.
 
 ### `[RESULT]` The failure is localised, and that is the actionable finding
 
@@ -123,17 +159,23 @@ and lone surrogates crashing `Observation`.
 - **Is the task wrong rather than the architecture?** Every measurement is on event
   classification, which System-1 already does adequately. A task needing genuine decomposition
   might behave differently. **The most likely way the negative result is wrong.**
-- Does removing `other` from the option set change the three zero-F1 classes? Untested, and the
-  cheapest high-value experiment available.
+- Does removing `other` (protocol v3) change the three zero-F1 classes? Untested — the v3
+  change landed after both evaluations launched. **And note that full text already moved two of
+  them off zero without v3**, which is evidence about the mechanism rather than the fix.
+- **Why did `m_and_a` collapse 0.67 → 0.13 on real filings?** The most urgent open question. It
+  is either a real limitation of the classification head on long M&A documents, or the same
+  catch-all problem reappearing in a different place. The data does not distinguish them yet.
 - Does the reasoning layer earn its cost on **workspace selection**? That is a different task
   from the one that failed, and it is untested.
 - Would PDF parsing change the numbers? The re-run is in flight.
 
 ## NEXT HIGHEST-VALUE ACTION
 
-1. Read `evals/results/real_eval_filings.json` when the run lands and report whether the
-   headline numbers move.
-2. **Remove `other` from `event_type` (protocol v3) and re-run E-009.** Three classes at F1 0.00
-   because a catch-all option absorbed them; this is a protocol defect and the cheapest fix with
-   the largest expected effect.
-3. On a machine with more RAM, test H5 before anything else.
+1. **Diagnose the `m_and_a` regression** (0.67 → 0.13 on real filings). It gates protocol v3:
+   if it is the catch-all problem again, v3 will not help and the design needs a different gate.
+2. **Re-run E-009 on protocol v3** against the same 120 items, on the summary text so it is
+   paired with row 12 and comparable in 25 minutes rather than 2 h 35 m.
+3. **Build the two-stage read**: classify on the summary, re-read the filing only for the
+   ambiguous minority. Full text is worth ~30 points of per-class F1 and costs 12× latency; this
+   is the obvious way to keep one without paying the other.
+4. On a machine with more RAM, test H5 before anything else.
