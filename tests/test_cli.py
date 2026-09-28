@@ -127,7 +127,10 @@ def test_the_readme_contains_command_examples_to_check():
 def test_every_readme_command_example_parses(command: str) -> None:
     import shlex
 
-    argv = shlex.split(command)
+    # Strip a trailing shell comment. A README legitimately writes
+    # `divya index --days 2 --limit 500  # what this does`, and shlex does not treat `#` as a
+    # comment unless told to -- so without this the docs are untestable rather than wrong.
+    argv = shlex.split(command, comments=True)
     assert argv[0] == "divya", command
     args = cli.build_parser().parse_args(argv[1:])
     assert callable(args.func), command
