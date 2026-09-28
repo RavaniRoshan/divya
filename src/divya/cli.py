@@ -297,6 +297,40 @@ def cmd_index(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_read(args: argparse.Namespace) -> int:
+    """Two-stage read of one event, reporting exactly what it cost and why it stopped there."""
+    from divya.data.store import Store
+    from divya.data.twostage import TwoStageReader
+
+    store = Store(args.db) if args.db else Store()
+    row = store.get_event(args.seq_id) if args.seq_id else None
+    if row is None and args.symbol:
+        hist = store.history(args.symbol.upper(), limit=1)
+        row = hist[0]["event"] if hist else None
+    if row is None:
+        where = args.seq_id or args.symbol
+        print(f"no stored event for {where}. Run `divya index` first.", file=sys.stderr)
+        return 1
+
+    reader = TwoStageReader(escalate_below=args.escalate_below)
+    res = reader.read(row, force_filing=args.force_filing)
+
+    print(f"{row.symbol}  {row.company}   [{row.nse_desc}]")
+    print(f"  source        {res.text_source}"
+          f"{'  (filing read)' if res.expanded else '  (summary only)'}")
+    print(f"  first pass    {'n/a' if res.first_confidence is None else f'{res.first_confidence:.3f}'}"
+          f"   threshold {res.escalate_below:.2f}")
+    print(f"  why           {res.reason}")
+    print(f"  cost          summary {res.summary_ms:.0f}ms  filing {res.filing_ms:.0f}ms"
+          f"  total {res.elapsed_ms:.0f}ms")
+    for name, ans in res.answers.items():
+        summary = json.dumps(ans, ensure_ascii=False)
+        if len(summary) > 190:
+            summary = summary[:190] + "..."
+        print(f"    {name:<26} {summary}")
+    return 0
+
+
 def cmd_filings(args: argparse.Namespace) -> int:
     """Replace summary text with the full filing, where a text layer exists.
 
@@ -564,6 +598,20 @@ def build_parser() -> argparse.ArgumentParser:
     ix.add_argument("--limit", type=int, default=5000)
     ix.add_argument("--db", default=None)
     ix.set_defaults(func=cmd_index)
+
+    tr = sub.add_parser(
+        "read",
+        help="decide an event with two-stage reading: summary first, filing only if unsure",
+    )
+    tr.add_argument("--db", default=None)
+    tr.add_argument("--symbol", required=True, help="a symbol present in the store")
+    tr.add_argument("--seq-id", default=None, help="a specific event; overrides --symbol")
+    tr.add_argument("--escalate-below", type=float, default=0.60)
+    tr.add_argument(
+        "--force-filing", action="store_true",
+        help="skip the summary pass; the upper bound when latency does not matter",
+    )
+    tr.set_defaults(func=cmd_read)
 
     fl = sub.add_parser(
         "filings",

@@ -919,3 +919,54 @@ a 2.5-hour evaluation is not worth restarting because a one-line check was conve
 **WHY A SCRIPT AND NOT A DISCIPLINE.** The discipline was already stated and was already
 violated, twice, by the same agent that wrote it down. A rule that is not enforced by the
 environment is a note, and this one had to become a gate.
+
+---
+
+## D-024 — 2026-09-28 — Adding an explicit contrast clause to a class description does not work
+
+**DECISION.** Revert the contrast clauses; move the m_and_a / capital_action / fundraise
+discrimination out of the choice head and into a **binary `noul` gate**,
+`transfers_a_business` (protocol v4).
+
+**CONTEXT.** D-022 found `m_and_a` collapsing 0.67 → 0.13 on real filing text, going to
+`capital_action` 10 of 14. Reading the failing documents showed a plausible mechanism: an
+acquisition filing is full of "shareholding", "70.26% of total shareholding", and consideration
+figures, while the `capital_action` description was a list of *share-count manipulations*. A 421M
+encoder matching on surface tokens would trip it.
+
+The obvious fix is to make the two classes explicitly mutually exclusive in their descriptions.
+Protocol v3 did exactly that: `capital_action` gained "NOT a purchase or sale of another
+company's shares", and `m_and_a` gained "Choose this even when the filing is full of
+shareholding percentages".
+
+**MEASURED ON THE SAME 28 REAL FILINGS:**
+
+| class | n | v2 | **v3** | |
+|---|---|---|---|---|
+| m_and_a | 14 | 0.07 | **0.13** | barely moved, still wrong |
+| capital_action | 13 | 0.62 | **0.44** | **regressed** |
+| fundraise | 1 | 0.00 | 0.00 | n=1, not measurable |
+
+`m_and_a` still went to `capital_action` **11 of 14**; `capital_action` started leaking to
+`fundraise` 5 of 13.
+
+**THE CONCLUSION, WHICH MATTERS MORE THAN THE FIX.** *A 421M encoder does not read a contrast
+clause.* Written discriminators in a class description do not move a confusion that is driven
+by shared vocabulary, because the model is not attending to the sentence that says which way to
+go — it is attending to the words that are actually in the filing. Writing a longer, more
+careful description made the prompt longer and the result slightly worse.
+
+This also retires a tempting piece of intuition: that better-written option descriptions fix
+option confusion. They did not. The discrimination has to happen somewhere the model actually
+operates, and a **binary question about the transaction's object** is a different and much
+easier problem than a 9-way choice among three classes that share vocabulary.
+
+**FOLLOW-UP.** v4 tests that. If a binary gate does not work either, the honest conclusion is
+that **Laya cannot discriminate these three classes on filing text at all**, and the right
+response is to not ask it to — merge them into one class the protocol can actually support,
+rather than shipping a taxonomy the engine cannot execute. That is a legitimate outcome and
+better than a taxonomy that silently mislabels 75% of its own events.
+
+**KEPT FROM v3:** removing `other` from the choice head. It is right on its own terms —
+`event_type_determinable` gives unclassifiable documents a first-class answer, and a catch-all
+in a typed-decision head becomes where uncertainty goes.
