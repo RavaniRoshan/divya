@@ -4,9 +4,9 @@ _Last updated: 2026-09-28, iteration 3._
 
 ## CURRENT OBJECTIVE
 
-The A/B/C/D evaluation on real NSE data is running. Everything needed to interpret it exists:
-the harness, the metrics, the real dataset, and the protocol. When it lands, the job is to read
-it honestly — including if D does not beat C.
+The thesis is measured and **rejected on this data**. The remaining work is the highest-value
+experiment the result points at: the `other` option is acting as an attractor for uncertainty,
+and two classes score F1 = 0.00 because of it.
 
 ## WHAT CHANGED
 
@@ -22,6 +22,48 @@ it honestly — including if D does not beat C.
 - 79 tests, ruff clean, mypy clean.
 - Architecture spec (`docs/architecture/UNIFIED_MODEL.md`), README, Makefile, Dockerfile and
   compose written.
+
+## `[RESULT]` E-009 — THE ANSWER. The recurrent loop is worse, and the reasoning layer adds nothing
+
+120 real NSE announcements. All four arms, paired, same process, same loaded checkpoint.
+`qwen2.5-coder:3b`, min_confidence 0.55, max_turns 4. Artifact: `evals/results/real_eval.json`.
+
+| Arm | Accuracy | Macro-F1 | ECE | AURC | p95 | S1 calls | S2 calls | Prompt tok | Abstain |
+|---|---|---|---|---|---|---|---|---|---|
+| **A** S1 alone | **0.558** | 0.436 | 0.096 | **0.240** | **4.7 s** | 1.00 | 0.00 | 0 | 0.0% |
+| **B** S2 alone | 0.000 | 0.000 | 0.000 | 1.000 | 2.1 s | 0.00 | 2.00 | 2214 | 0.0% |
+| **C** S2→S1 single shot | **0.558** | 0.436 | 0.096 | **0.240** | 19.0 s | 1.00 | 1.00 | 1079 | 0.0% |
+| **D** S2↔state↔S1 recurrent | **0.508** | 0.371 | 0.080 | 0.260 | **40.4 s** | 2.57 | 3.33 | 4941 | **75.8%** |
+
+Per stratum: `clear` (n=50) A 0.500 / C 0.500 / **D 0.420** · `noisy` (n=64) A 0.609 / C 0.609 /
+**D 0.578** · `ambiguous` (n=6) all 0.500.
+
+**Two independent negative results:**
+
+1. **A and C are identical to the decimal** — accuracy, macro-F1, ECE and AURC all equal. The
+   reasoning layer contributes *zero* to the decision while costing 4.0× p95 latency and 1079
+   prompt tokens per event.
+2. **D is worse than C** — 0.508 vs 0.558, worse on every stratum except `ambiguous` (tied), at
+   8.5× arm A's latency and 2.57 System-1 calls per event. It abstains on **75.8%** of events and
+   scores the abstained ones wrong, so the abstention costs accuracy rather than buying safety.
+
+**Hypothesis verdicts:** H1 (loop helps) **REJECTED** · H2 (loop ≈ single-shot) **REJECTED** ·
+H3 (loop hurts) **SUPPORTED** · H4 (calibration win) **NOT SUPPORTED** — D's ECE is marginally
+better (0.080 vs 0.096) but its AURC is worse (0.260 vs 0.240), and the ECE gain is an artifact
+of abstaining more rather than of better-ordered confidence. H3 is also what the external
+literature predicts (ATLAS 2510.15949).
+
+**The failure is not uniform, and that is the actionable part.** Per class: `credit_rating`
+F1 0.94, `leadership_change` F1 0.88, `m_and_a` 0.67, `other` 0.43 (precision **0.29**),
+`capital_action` **0.00** (n=13), `regulatory_action` **0.00** (n=17). The confusion matrix shows
+`other` acting as an attractor for uncertainty: `capital_action` goes to `other`/`fundraise`
+13/13, `regulatory_action` to `other`/`capital_action` 16/17.
+
+**DECISION (D-012, D-013):** the default runtime is **arm A, System-1 alone**, in a named
+`system1_only` mode. The recurrent loop is retained, tested and traced as the control that made
+this result possible, but it is not the product default. **Levels 3 and 4 are declined** — there
+is no measured value for a specialised System-2 to optimise when the untrained one contributes
+nothing and the loop it would drive is worse.
 
 ## EVIDENCE
 
@@ -103,7 +145,7 @@ numeric-presence check → finish at 0.81 confidence. 3 System-1 calls, 4 System
 
 ## TESTS
 
-**79 passing.** `ruff check` clean, `mypy src/divya` clean. Coverage includes: every Laya
+**83 passing.** `ruff check` clean, `mypy src/divya` clean. Coverage includes: every Laya
 contract rule, the calibration-bucket guard, hand-computed metric values, termination totality
 across six distinct paths, degradation for missing/broken/failing System-1 and System-2, trace
 reconstructability, frozen-record immutability, and the freshness/provenance invariants.

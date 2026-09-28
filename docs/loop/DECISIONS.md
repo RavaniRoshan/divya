@@ -413,3 +413,80 @@ tried batching, it is 1.1×, here is why" stops the next engineer from spending 
 
 **FOLLOW-UP.** Install `laya[onnx]` and measure. If it does not help, throughput on this
 hardware is what it is, and the honest answer is that the loop is not an interactive product.
+
+---
+
+## D-012 — 2026-09-28 — The recurrent loop is not the product default; System-1 alone is
+
+**DECISION.** The default runtime is **arm A: System-1 alone**. System-2 remains configurable
+and fully implemented. The recurrent loop (arm D) is retained as a tested, traced, selectable
+mode — it is the control that produced the result — but it is **not** the default and it is not
+what the product recommends.
+
+**CONTEXT.** E-009 measured all four arms on 120 real NSE announcements, paired, same process,
+same checkpoint. Full table in `docs/research/UNIFICATION_EXPERIMENTS.md` §E-009.
+
+**RESULT.**
+
+| Arm | Accuracy | Macro-F1 | ECE | AURC | p95 | Abstain |
+|---|---|---|---|---|---|---|
+| A S1 alone | 0.558 | 0.436 | 0.096 | 0.240 | **4.7 s** | 0.0% |
+| B S2 alone | 0.000 | 0.000 | 0.000 | 1.000 | 2.1 s | 0.0% |
+| C S2→S1 | **0.558** | 0.436 | 0.096 | 0.240 | 19.0 s | 0.0% |
+| D recurrent | **0.508** | 0.371 | 0.080 | 0.260 | **40.4 s** | **75.8%** |
+
+Two independent findings:
+1. **A and C are identical to the decimal** — accuracy, macro-F1, ECE, AURC all equal. The
+   reasoning layer contributes *zero* while costing 4.0× latency and 1079 prompt tokens per event.
+2. **D is worse than C** (−0.050 accuracy, worse on `clear` and `noisy`, tied on `ambiguous`) at
+   8.5× arm A's latency, 2.57 System-1 calls per event, and a 75.8% abstention rate that scores
+   the abstained events wrong.
+
+Hypothesis verdicts: **H1 rejected, H2 rejected, H3 supported, H4 not supported** (D's ECE is
+marginally better but its AURC is worse; the ECE gain is an artifact of abstaining more, not of
+better-ordered confidence). H3 is also what the external literature predicts — ATLAS
+(arXiv 2510.15949) reports reflection-based feedback fails to give systematic gains.
+
+**TRADE-OFFS.** This is the project declining its own thesis on its own evidence. The
+sophisticated architecture is fully built, fully tested, and fully documented — and it is not
+recommended, because the measurement says so. Shipping arm A as the default is the honest
+choice even though it makes the product simpler than the PDR described.
+
+**WHY.** The mission is explicit that a strong product with documented limitations beats a false
+claim, and that complexity must produce measurable value. Here it demonstrably does not.
+
+**REVERSIBILITY.** Fully reversible. The loop is a runtime flag (`--max-turns`, `allow_escalation`),
+not a rewrite. If a stronger System-2 is later available, re-run E-009 and revisit.
+
+**FOLLOW-UP EXPERIMENT (highest value in the project).** The failure is *not uniform*: two
+classes score **F1 = 0.00** (`capital_action` n=13, `regulatory_action` n=17) while
+`credit_rating` scores 0.94 and `leadership_change` 0.88. The confusion matrix shows `other`
+acting as an attractor for uncertainty — `capital_action` goes to `other`/`fundraise` 13/13,
+`regulatory_action` to `other`/`capital_action` 16/17, and `other` itself has precision 0.29
+while absorbing 27 misclassifications. **Removing `other` from the option set** is the single
+clearest experiment available and could change these numbers substantially.
+
+---
+
+## D-013 — 2026-09-28 — Levels 3 and 4 are declined
+
+**DECISION.** System-2 fine-tuning for the Laya interface (Level 3) and any model fusion
+(distillation, shared latents, joint optimisation — Level 4) are **not built**.
+
+**CONTEXT.** The phased plan made Level 3 conditional on the P7 evaluation justifying it. E-009
+does not justify it: the untrained reasoning layer contributes nothing, and the recurrent loop
+it would be trained to drive is measurably *worse* than the single-shot path it would replace.
+
+**EVIDENCE.** D-012. Training a specialised System-2 to operate better with a loop that
+demonstrably degrades results would be optimising a premise the experiment just rejected.
+
+**WHY.** "Do not introduce complexity because it sounds state-of-the-art. Complexity must produce
+measurable value." There is no measured value to optimise here, and building Levels 3–4 would
+have consumed the remaining effort while producing no evidence about the actual question.
+
+**REVERSIBILITY.** Reversible in principle — the protocol, state, and provider interface are all
+in place. Declining is the right call *now*, and the decision is recorded so it can be revisited
+against evidence rather than inertia.
+
+**FOLLOW-UP.** Revisit only if (a) a stronger System-2 becomes runnable on this hardware class,
+or (b) the `other`-attractor fix materially changes the picture.

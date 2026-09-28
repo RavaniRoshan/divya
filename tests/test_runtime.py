@@ -405,3 +405,51 @@ def test_model_view_excludes_raw_payload_and_trace():
     assert "raw_response" not in payload
     assert "trace" not in payload
     assert view is None or "raw_response" not in view
+
+
+# --- system1-only mode (the measured default, D-012) -----------------------
+
+
+def test_system1_only_makes_exactly_one_call_and_no_reasoning_model():
+    """The default mode, per D-012: one typed pass, zero System-2 calls.
+
+    A and C measured identical on quality at 4x the latency, so paying for the reasoning layer
+    on this task is not defensible. This pins the mode that makes that true.
+    """
+    s1 = StubSystem1()
+    rt_ = DivyaRuntime(protocol=PROTOCOL, system2=None, system1=s1,
+                       config=LoopConfig(system1_only=True))
+    res = run(rt_.run(domain="t", objective="o", observations=obs()))
+    assert res.state.termination is TerminationStatus.FINISHED
+    assert "D-012" in res.state.termination_reason
+    assert res.state.system1_call_count == 1
+    assert res.state.system2_records == []
+    assert res.metrics()["prompt_tokens"] == 0
+    # Only tier-1 decisions, so the escalation targets are never paid for.
+    assert set(s1.calls[0]) == {"event_type", "is_material", "materiality", "direction"}
+
+
+def test_system1_only_conclusion_comes_from_typed_answers():
+    """The conclusion must be attributable to the engine, not to a writer who did not run."""
+    res = run(DivyaRuntime(protocol=PROTOCOL, system2=None, system1=StubSystem1(),
+                           config=LoopConfig(system1_only=True))
+              .run(domain="t", objective="o", observations=obs()))
+    assert "event type: earnings_result" in res.state.conclusion
+    assert "material:" in res.state.conclusion
+
+
+def test_system1_only_fails_safely_when_engine_fails():
+    res = run(DivyaRuntime(protocol=PROTOCOL, system2=None, system1=StubSystem1(fail=True),
+                           config=LoopConfig(system1_only=True))
+              .run(domain="t", objective="o", observations=obs()))
+    assert res.state.termination is TerminationStatus.ERROR
+    assert "System-1 failed" in res.state.termination_reason
+
+
+def test_system1_only_needs_no_reasoning_model_at_all():
+    """`system2=None` is valid here; the default product path must not require an LLM."""
+    res = run(DivyaRuntime(protocol=PROTOCOL, system2=None, system1=StubSystem1(),
+                           config=LoopConfig(system1_only=True))
+              .run(domain="t", objective="o", observations=obs()))
+    assert res.terminated
+    assert res.degraded == []

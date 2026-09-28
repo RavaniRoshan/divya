@@ -91,6 +91,12 @@ class LoopConfig:
     system2_timeout_s: float = 90.0
     system1_timeout_s: float = 120.0
     allow_escalation: bool = True
+    #: Run exactly one System-1 pass over the tier-1 decisions and stop, with no reasoning model
+    #: involved. This is the measured default (D-012): arm A scored identically to arm C on
+    #: every quality and calibration metric at a quarter of the latency. It is a named mode
+    #: rather than `max_turns=0`, because a zero turn budget means "do nothing", not "ask
+    #: System-1 once", and conflating the two makes the config unreadable.
+    system1_only: bool = False
     max_consecutive_system1_failures: int = MAX_CONSECUTIVE_SYSTEM1_FAILURES
     max_consecutive_system2_failures: int = MAX_CONSECUTIVE_SYSTEM2_FAILURES
     fallback_to_heuristic: bool = True
@@ -101,6 +107,7 @@ class LoopConfig:
             "min_confidence": self.min_confidence,
             "system2_timeout_s": self.system2_timeout_s,
             "allow_escalation": self.allow_escalation,
+            "system1_only": self.system1_only,
             "fallback_to_heuristic": self.fallback_to_heuristic,
         }
 
@@ -258,6 +265,9 @@ class DivyaRuntime:
 
         if not self.system1.is_available():
             self.degraded.append("system1: engine unavailable at run start")
+
+        if self.config.system1_only:
+            return self._run_system1_only(state, b, emit)
 
         consecutive_s2_fail = 0
         consecutive_s1_fail = 0
@@ -456,6 +466,52 @@ class DivyaRuntime:
         b.terminate(
             TerminationStatus.MAX_TURNS,
             f"Reached max_turns={self.config.max_turns} without a conclusion",
+        )
+        return LoopResult(state=state, builder=b, degraded=list(self.degraded))
+
+    def _run_system1_only(
+        self, state: SharedState, b: StateBuilder,
+        emit: Callable[[dict[str, Any]], None],
+    ) -> LoopResult:
+        """One typed-decision pass, no reasoning model, no loop.
+
+        The conclusion is the typed answers themselves plus the engine's own confidence, not a
+        model-written sentence: on this task the engine's calibrated answer was strictly better
+        than anything a 3B model added on top of it, and attributing the output to a reasoner
+        that did not contribute would misdescribe where it came from.
+        """
+        spec = self.protocol.by_name("event_triage")
+        tier1 = [q.name for q in spec.questions if q.tier == 1]
+        try:
+            rec = self.system1.answer(
+                state.observation_text(), spec, only=tier1, turn_index=0,
+                protocol_version=self.protocol.protocol_version,
+            )
+        except Exception as exc:
+            b.terminate(TerminationStatus.ERROR, f"System-1 raised: {type(exc).__name__}: {exc}")
+            return LoopResult(state=state, builder=b, degraded=list(self.degraded))
+        b.record_system1(rec)
+        emit({"type": "system1", "spec": f"{spec.name}@{spec.version}",
+              "decisions": tier1, "checkpoint": rec.checkpoint,
+              "latency_ms": round(rec.latency_ms, 1), "error": rec.error,
+              "answers": rec.answers})
+        if rec.error:
+            b.terminate(TerminationStatus.ERROR, f"System-1 failed: {rec.error}")
+            return LoopResult(state=state, builder=b, degraded=list(self.degraded))
+
+        answers = rec.answers
+        conf = max((rec.confidence(n) for n in answers), default=0.0)
+        parts: list[str] = []
+        if choice := (answers.get("event_type") or {}).get("choice"):
+            parts.append(f"event type: {choice}")
+        if isinstance((mat := answers.get("is_material") or {}).get("noul"), int | float):
+            parts.append(f"material: P={mat['noul']:.2f}")
+        if isinstance((lvl := answers.get("materiality") or {}).get("score"), int | float):
+            parts.append(f"materiality level: {round(float(lvl['score']))}")
+        b.set_outcome("; ".join(parts) or "no System-1 answer", conf, self._uncertainty(state))
+        b.terminate(
+            TerminationStatus.FINISHED,
+            "System-1 only mode: one typed pass, no reasoning model (D-012)",
         )
         return LoopResult(state=state, builder=b, degraded=list(self.degraded))
 

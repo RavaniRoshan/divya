@@ -17,3 +17,20 @@
   B: 120/120 (224s)
 [arm C] running 120 items ...
   C: 20/120 (60s)
+  C: 40/120 (262s)
+  C: 60/120 (434s)
+  C: 80/120 (489s)
+  C: 100/120 (542s)
+  C: 120/120 (595s)
+[arm D] running 120 items ...
+  D: 20/120 (150s)
+  D: 40/120 (314s)
+  D: 60/120 (859s)
+  D: 80/120 (1009s)
+  D: 100/120 (1148s)
+  D: 120/120 (1320s)
+[arm A] acc=0.558 macroF1=0.436 ECE=0.096 AURC=0.240 p95=4736ms
+[arm B] acc=0.000 macroF1=0.000 ECE=0.000 AURC=1.000 p95=2105ms
+[arm C] acc=0.558 macroF1=0.436 ECE=0.096 AURC=0.240 p95=19003ms
+[arm D] acc=0.508 macroF1=0.371 ECE=0.080 AURC=0.260 p95=40380ms
+[written] evals/results/real_eval.json

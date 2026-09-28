@@ -246,8 +246,101 @@ is not rediscovered as a promising-sounding idea. See D-011. **ONNX remains unme
 
 ## E-009 — Does the recurrent loop beat a single-shot tool call? *(the actual thesis)*
 
-**STATUS: RUNNING.** Results in `evals/results/real_eval.json`; read and reported in
-`docs/loop/STATUS.md` and the final report.
+**RESULT: NO. The recurrent loop is worse, and the reasoning layer adds nothing at all.**
+
+Results: `evals/results/real_eval.json`. **120 real NSE announcements**, all four arms, same
+process, same loaded checkpoint, paired. `qwen2.5-coder:3b`, min_confidence 0.55, max_turns 4.
+
+| Arm | Accuracy | Macro-F1 | ECE | AURC | p95 | S1 calls | S2 calls | Prompt tok | Abstain |
+|---|---|---|---|---|---|---|---|---|---|
+| **A** S1 alone | **0.558** | 0.436 | 0.096 | **0.240** | **4.7 s** | 1.00 | 0.00 | 0 | 0.0% |
+| **B** S2 alone | 0.000 | 0.000 | 0.000 | 1.000 | 2.1 s | 0.00 | 2.00 | 2214 | 0.0% |
+| **C** S2→S1 single shot | **0.558** | 0.436 | 0.096 | **0.240** | 19.0 s | 1.00 | 1.00 | 1079 | 0.0% |
+| **D** S2↔state↔S1 recurrent | **0.508** | 0.371 | 0.080 | 0.260 | **40.4 s** | 2.57 | 3.33 | 4941 | **75.8%** |
+
+Per stratum (accuracy):
+
+| Stratum | n | A | B | C | **D** |
+|---|---|---|---|---|---|
+| clear | 50 | 0.500 | 0.000 | 0.500 | **0.420** |
+| noisy | 64 | 0.609 | 0.000 | 0.609 | **0.578** |
+| ambiguous | 6 | 0.500 | 0.000 | 0.500 | 0.500 |
+
+### Two independent negative results
+
+**1. A and C are identical to the decimal** — accuracy 0.558, macro-F1 0.436, ECE 0.096, AURC
+0.240, all four the same. The System-2 layer contributes **exactly zero** to the decision and
+costs **4.0× the p95 latency** (19.0 s vs 4.7 s) plus 1079 prompt tokens per event. On this task
+the reasoning model is pure overhead.
+
+**2. D is worse than C** — accuracy 0.508 vs 0.558 (−0.050), worse on every stratum except
+`ambiguous` where it ties, at **8.5× arm A's latency** and 2.57 System-1 calls per event instead
+of 1.00. It abstains on **75.8%** of events, and when it abstains it scores that event wrong, so
+the abstention is costing accuracy rather than buying safety.
+
+### Hypothesis verdicts
+
+| Hypothesis | Verdict | Evidence |
+|---|---|---|
+| **H1** the recurrent loop helps | **REJECTED** | D 0.508 < C 0.558, and worse on clear and noisy |
+| **H2** the loop ≈ single-shot | **REJECTED** | D is worse than C, not equal to it |
+| **H3** the loop actively hurts | **SUPPORTED** | The only hypothesis consistent with every column |
+| **H4** the win is calibration, not accuracy | **NOT SUPPORTED** | D's ECE is marginally better (0.080 vs 0.096) but its AURC is *worse* (0.260 vs 0.240). The small ECE gain is an artifact of abstaining more, not of better-ordered confidence |
+
+H3 is also the hypothesis the external literature favours: ATLAS (arXiv 2510.15949) reports
+that reflection-based feedback fails to provide systematic gains. The pre-registered prediction
+and the measurement agree.
+
+### Failure analysis — and it is not uniform
+
+The system is **bimodal**, and that matters more than the headline number:
+
+| Class | n | Precision | Recall | F1 |
+|---|---|---|---|---|
+| credit_rating | 8 | 0.89 | 1.00 | **0.94** |
+| leadership_change | 43 | 1.00 | 0.79 | **0.88** |
+| m_and_a | 14 | 1.00 | 0.50 | 0.67 |
+| other | 18 | **0.29** | 0.83 | 0.43 |
+| capital_action | 13 | 0.00 | 0.00 | **0.00** |
+| regulatory_action | 17 | 0.00 | 0.00 | **0.00** |
+
+Two classes score exactly zero, and the confusion matrix shows why — **`other` is an attractor
+for "I cannot tell"**:
+
+- `capital_action` (n=13) → `other` 8, `fundraise` 5. **Never predicted correctly once.**
+- `regulatory_action` (n=17) → `other` 13, `capital_action` 3, `board_meeting` 1. **Never correct.**
+
+`other` has precision 0.29 while absorbing 27 of the misclassifications. A catch-all option in a
+typed-decision head does not stay a catch-all; it becomes where uncertainty goes. This is a
+protocol design defect, not a model defect, and it is fixable: **remove `other` from the option
+set and let unresolvable filings go to `unresolved` or abstain.** The clearest single experiment
+the project has produced.
+
+### DECISION
+
+1. **Do not ship the recurrent loop as the default.** It is slower, costlier and less accurate
+   than the single-shot path. Level 2 is retained in the codebase, fully tested and fully traced,
+   because it is the control that made this result possible — but it is not the product default.
+2. **The honest default for this task is arm A: System-1 alone.** A and C are identical in
+   quality, so paying 4× latency for the reasoning layer is indefensible. System-2 stays
+   available and configurable; it is simply not earning its cost on these tasks.
+3. **Levels 3 and 4 are declined.** A specialised System-2 trained for this interface, and any
+   model fusion, are not justified by a result where the untrained reasoning layer contributes
+   nothing and the loop actively degrades. Doing them would be optimising a premise this
+   experiment just rejected.
+
+### What this does NOT show
+
+- **It does not show the architecture cannot work.** It shows that *this* 3B code-specialised
+  model, driving *this* protocol, over *these* 120 announcements, does not benefit. A stronger
+  reasoning model is untested — 4B is memory-thrashing on this hardware (D-009), so the question
+  could not be asked here.
+- **It does not show System-2 is useless in general.** It shows the *typed-decision* task is
+  already solved well enough by System-1 that there is nothing for a reasoner to add. The
+  architecture may earn its keep on a task where decomposition matters; this is not one.
+- **Only `event_type` was scored.** NSE publishes no ground truth for `is_material`,
+  `materiality` or `direction` (B-005). A loop that helps decide *materiality* from a filing
+  would not show up here.
 
 **HYPOTHESES held open** (from `research/LITERATURE.md` §7):
 

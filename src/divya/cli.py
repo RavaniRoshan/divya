@@ -257,15 +257,25 @@ def cmd_decide(args: argparse.Namespace) -> int:
         print(f"protocol error: {exc}", file=sys.stderr)
         return 1
 
-    runtime = DivyaRuntime(
-        protocol=protocol,
-        system2=build_provider(),
-        config=LoopConfig(
-            max_turns=args.max_turns,
-            min_confidence=args.min_confidence,
-            allow_escalation=not args.no_escalation,
-        ),
-    )
+    # Default is `system1`, and that default is a measurement, not a simplification.
+    # On 120 real NSE announcements the reasoning layer was identical in accuracy to a single
+    # System-1 call (0.558, macro-F1 0.436, ECE 0.096, AURC 0.240 -- all four equal) at 4x the
+    # p95 latency, and the recurrent loop was *worse* (0.508) at 8.5x. See
+    # docs/loop/DECISIONS.md D-012 and docs/research/UNIFICATION_EXPERIMENTS.md E-009.
+    # The loop stays available and fully traced under --mode loop.
+    if args.mode == "system1":
+        runtime = DivyaRuntime(protocol=protocol, system2=None,
+                               config=LoopConfig(system1_only=True))
+    else:
+        runtime = DivyaRuntime(
+            protocol=protocol,
+            system2=build_provider(),
+            config=LoopConfig(
+                max_turns=args.max_turns,
+                min_confidence=args.min_confidence,
+                allow_escalation=not args.no_escalation,
+            ),
+        )
     obs = Observation(
         kind="document",
         source_id=args.source_id or "cli:stdin",
@@ -436,6 +446,10 @@ def build_parser() -> argparse.ArgumentParser:
         "Classify this Indian corporate disclosure: event type, materiality, and direction."))
     d.add_argument("--source-id")
     d.add_argument("--source-url")
+    d.add_argument("--mode", choices=["system1", "loop"], default="system1",
+                   help="system1 (default, per D-012) asks System-1 once and reads the typed "
+                        "answers. loop runs the full System-2<->System-1 recurrent architecture, "
+                        "which measured worse -- available for inspection, not recommended.")
     d.add_argument("--max-turns", type=int, default=4)
     d.add_argument("--min-confidence", type=float, default=0.55)
     d.add_argument("--no-escalation", action="store_true")
