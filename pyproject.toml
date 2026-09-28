@@ -31,6 +31,8 @@ dependencies = [
     "numpy>=1.24",
     "pypdf>=5.0",
     "textual>=0.60",
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
 ]
 
 [project.optional-dependencies]

@@ -456,3 +456,104 @@ def test_why_pane_populates_after_a_decision(store):
             assert "DISAGREED" in why
 
     drive(go())
+
+
+# --- conversational sessions and typed UI intents --------------------------
+# These test the product shape the brief specifies: intent in, workspace out, with follow-ups
+# that continue the same investigation rather than starting a new question.
+
+
+def test_followup_narrows_without_discarding_entities():
+    """'Compare A and B' -> 'now only X' -> 'show the evidence' is one task with three turns."""
+    from divya.runtime.session import Resolver, Session
+
+    r = Resolver([("HDFCBANK", "HDFC Bank Limited"), ("ICICIBANK", "ICICI Bank Limited")])
+    s = Session()
+    r.apply(s, "Compare HDFC Bank and ICICI Bank on the latest earnings")
+    assert s.task_type == "comparison"
+    assert set(s.symbols()) == {"HDFCBANK", "ICICIBANK"}
+
+    r.apply(s, "Now only look at asset quality")
+    assert s.symbols() == ["HDFCBANK", "ICICIBANK"], "a follow-up must not drop entities"
+    assert "asset quality" in s.dimensions
+    assert s.turns[1].followed_up is True
+
+    r.apply(s, "Show me the evidence")
+    assert s.symbols() == ["HDFCBANK", "ICICIBANK"]
+    assert s.task_type == "evidence"
+
+
+def test_a_new_task_replaces_the_previous_thread():
+    from divya.runtime.session import Resolver, Session
+
+    r = Resolver([("INFY", "Infosys Limited"), ("TCS", "Tata Consultancy Services Limited")])
+    s = Session()
+    r.apply(s, "Investigate Infosys")
+    assert s.symbols() == ["INFY"]
+    r.apply(s, "What changed across the market today?")
+    assert s.symbols() == [], "a genuinely new task must not inherit the old entities"
+
+
+def test_followup_on_a_thread_with_no_entities_adopts_the_named_one():
+    """Regression. 'Why is AIIL high priority?' as a second turn resolved to nothing and the
+    workspace came back empty, because the follow-up branch required pre-existing entities."""
+    from divya.runtime.session import Resolver, Session
+
+    r = Resolver([])
+    s = Session()
+    r.apply(s, "What changed materially across the market today?")
+    assert s.symbols() == []
+    r.apply(s, "Why is AIIL high priority?")
+    assert s.symbols() == ["AIIL"]
+
+
+def test_common_words_are_not_resolved_as_tickers():
+    """A bare uppercase token is usually not a ticker, and guessing sends the user to the
+    wrong company for the rest of the conversation."""
+    from divya.runtime.session import Resolver, Session
+
+    r = Resolver([])
+    s = Session()
+    r.apply(s, "WHAT changed and WHY did SEBI act on the IPO?")
+    assert "SEBI" not in s.symbols()
+    assert "WHAT" not in s.symbols()
+    assert "IPO" not in s.symbols()
+
+
+def test_ui_intent_enum_covers_the_prescribed_intents():
+    from divya.runtime.intents import UI_INTENTS, WorkspaceKind
+
+    for name in (
+        "SHOW_COMPANY", "SHOW_COMPARISON", "SHOW_EVENT_STREAM", "SHOW_SCREEN", "SHOW_FILING",
+        "SHOW_TIMELINE", "SHOW_FINANCIALS", "SHOW_DECISION_TRACE", "SHOW_EVIDENCE", "SHOW_ALERTS",
+    ):
+        assert name in UI_INTENTS, f"{name} is not an emittable intent"
+    assert UI_INTENTS["SHOW_COMPANY"] is WorkspaceKind.COMPANY
+
+
+def test_empty_workspace_is_a_result_not_a_crash():
+    """'I have no data for that' is an answer the frontend can render, not an exception."""
+    from divya.runtime import intents
+    from divya.runtime.intents import WorkspaceKind
+
+    i = intents.company("ZZZZ", "Nonexistent Ltd", [])
+    assert i.kind is WorkspaceKind.EMPTY
+    assert i.note
+    assert i.payload == {}
+
+
+def test_workspace_carries_freshness_and_degradation():
+    """Freshness travels with the data so a price cannot be rendered without its age."""
+    from divya.data.store import Store
+    from divya.runtime.intents import Workspace
+    from divya.runtime.session import Session
+    from divya.runtime.workspaces import compose
+
+    store = Store(":memory:")
+    session = Session()
+    session.objective = "What changed today?"
+    session.task_type = "market"
+    w = compose(session, store)
+    assert isinstance(w, Workspace)
+    assert w.data_freshness, "freshness must always be present, even when it says 'no data'"
+    assert w.degraded is not None
