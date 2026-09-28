@@ -61,7 +61,7 @@ Requires Python ≥ 3.10. Tested on Python 3.12.
 ```bash
 git clone <this repo> && cd divya
 make setup          # venv + pinned dependencies
-make test           # 84 tests
+make test           # 378 tests
 make lint           # ruff + mypy
 make doctor         # what actually works in YOUR environment
 ```
@@ -117,6 +117,79 @@ reuse grant was located**. That is fine for running this yourself; it is **not**
 redistribute a build with the data baked in. The per-source verdict lives in
 `src/divya/data/sources.py` and is printed by `divya doctor`. See
 [docs/loop/BLOCKERS.md](docs/loop/BLOCKERS.md) B-002.
+
+---
+
+## The terminal
+
+```bash
+divya index --days 2 --limit 500     # ingest live NSE announcements into a local store
+divya terminal                       # launch the TUI
+```
+
+Event stream · detail · company list · a "why" evidence chain · decision state · freshness ·
+model versions, all keyboard-driven:
+
+```
+j k  move          enter  decide the selected event       w  raw System-1 output
+                   / interpreted (never confusable)
+c  companies       d  decision pane     e  event stream
+f  measurable only r  reload            ?  bindings      q  quit
+```
+
+The status bar always carries data age, whether System-1 is loaded, and which model is running.
+There is no state in which it omits them. `w` swaps the decision pane between the engine's raw
+output and the system's reading of it — the two are one keystroke apart because the whole claim
+of this project is that they can be told apart.
+
+Press `enter` on a real filing and it decides for real:
+
+```
+│ [system-1] event_triage@2  checkpoint=english  14831ms
+│   event_type      {"type": "choice", "choice": "earnings_result", "confidence": 0.4319}
+│   is_material     {"type": "noul", "noul": 0.5114}
+│ [conclusion] event type: earnings_result; material: P=0.51; materiality level: 2
+```
+
+Note that result: a *dividend* announcement classified `earnings_result`. That is the
+`other`-attractor failure, caught by the product's own default path rather than by a test.
+
+### Full filing text
+
+```bash
+divya filings --db data/store/divya.db --limit 100
+```
+
+NSE's API returns a one-line summary — median **154 characters** across a month of feed. The
+filing is in the attached PDF. Pulling it gives **25× more text** (107 of 120 evaluation items
+upgraded, 17k → 431k characters), and a materiality judgement needs figures that summaries
+routinely omit. Filings that are scanned images with no text layer are detected, reported, and
+fall back rather than being decided on as empty documents.
+
+---
+
+## Red team
+
+```bash
+.venv/bin/python -m divya.eval.redteam --out evals/results/redteam.json
+```
+
+43 cases across 7 classes — prompt injection, malformed input, duplicates, stale data,
+contradictory evidence, numeric traps, resource exhaustion. It runs against the real runtime and,
+for the injection class, the real Laya engine. It exits non-zero on any failure.
+
+**It found a real hole.** An 87-character fake system turn flipped `event_type` from
+`earnings_result` (0.973) to `other` (0.652) against the real engine. There was no sanitisation
+layer at all. It also found 14 more defects — contradictory evidence silently concatenated, a
+future timestamp reading as *fresh*, duplicates multiplying what the engine read, a raising
+System-1 escaping the loop, and a timeout that was not the bound.
+
+All 15 are fixed and the suite passes 43/43.
+
+**This is not a security audit and no claim is made that the system is secure.** Laya is a 421M
+encoder with no instruction hierarchy; it follows strong associative patterns. Sanitising raises
+the cost of the attacks we have seen. It does not raise a wall. See
+[docs/loop/BLOCKERS.md](docs/loop/BLOCKERS.md) B-006.
 
 ---
 
@@ -176,6 +249,13 @@ laya 0.3.21. Full method, n, and baseline in [docs/loop/EVALS.md](docs/loop/EVAL
 | Batching lever | **1.10× at best** — torch already saturates all 16 threads |
 | System-2 warm latency | `qwen2.5-coder:3b` **0.56–0.91 s**; `qwen3:4b` **42–64 s** (memory thrash) |
 | **A/B/C/D on real NSE data** (n=120) | see below — **the thesis was rejected** |
+| Significance, A vs D | McNemar **p = 0.0312**, paired bootstrap 95% CI **[−0.0917, −0.0167]** — excludes zero |
+| Discordant pairs | **only-A-correct 6, only-D-correct 0** — the loop fixed nothing and broke six |
+| Dead classes | **three at F1 = 0.00**: capital_action, fundraise, regulatory_action |
+| `other` absorbs | **36** misclassifications (precision 0.294) |
+| PDF filing extraction | **25.3×** more text; 107/120 items upgraded |
+| Red team | **43/43** pass, 15 defects found and fixed |
+| Tests | **378** passing, ruff and mypy clean |
 
 ### The headline result: the thesis is rejected on this data
 
@@ -248,19 +328,20 @@ available.
 ## Repository map
 
 ```
-src/divya/protocol/   versioned decision protocol: schema, loader, migration checks
+src/divya/protocol/   versioned decision protocol; untrusted-text sanitiser
 src/divya/system1/    the Laya adapter — the only module that imports laya
 src/divya/system2/    System-2 provider interface (ollama / openai_compatible / heuristic)
 src/divya/runtime/    shared state, the recurrent loop, tracing, termination
-src/divya/data/       source adapters, NSE live sources, licence register, taxonomy mapping
-src/divya/eval/       A/B/C/D harness and metrics (accuracy, Brier, ECE, risk-coverage)
-src/divya/terminal/   the terminal view
+src/divya/data/       source adapters, NSE live sources, licence register, taxonomy, PDF
+                       extraction, and the SQLite store
+src/divya/eval/       A/B/C/D harness, metrics, paired significance, red-team suite
+src/divya/terminal/   the TUI (app.py) and the single-decision audit view (view.py)
 models/questions.yaml the decision protocol
 docs/loop/            project state — the external memory
 docs/architecture/    UNIFIED_MODEL.md
 research/             primary-source research and benchmark scripts
 evals/                dataset builders (synthetic + real) and results
-tests/                84 tests
+tests/                378 tests
 ```
 
 `AGENTS.md` is the operational contract for anyone working here, including the rules on claims,
