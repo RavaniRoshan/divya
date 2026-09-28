@@ -773,3 +773,56 @@ display, not a bug report.
 - no number renders without its retrieval time — freshness travels with the data;
 - the reasoning model's prose is never displayed as a confidence — confidence comes from the
   typed engine or not at all.
+
+---
+
+## D-021 — 2026-09-28 — Protocol v3: split determinability out of the classification head
+
+**DECISION.** `event_triage` v2 → v3. `other` is **removed** from the `event_type` choice head
+(10 options → 9), and a new tier-1 `noul` — `event_type_determinable` — gates it. A document
+with no classifiable corporate event is answered by the gate, not by a catch-all class.
+
+**CONTEXT.** The E-009 agreement matrix localised the failure rather than spreading it evenly:
+
+| class | n | P | R | F1 |
+|---|---|---|---|---|
+| credit_rating | 8 | 0.89 | 1.00 | 0.94 |
+| leadership_change | 43 | 1.00 | 0.79 | 0.88 |
+| m_and_a | 14 | 1.00 | 0.50 | 0.67 |
+| **other** | 18 | **0.294** | 0.83 | 0.43 |
+| capital_action | 13 | 0.00 | 0.00 | **0.00** |
+| fundraise | 5 | 0.00 | 0.00 | **0.00** |
+| regulatory_action | 17 | 0.00 | 0.00 | **0.00** |
+
+**Three** classes at exactly zero, and the confusion matrix shows why. `capital_action` goes to
+`other`/`fundraise` **13 of 13**; `regulatory_action` to `other`/`capital_action` **16 of 17**.
+`other` itself has precision **0.294** (TP 15, FP 36) — it is not a class the engine uses, it is
+**where uncertainty goes**.
+
+**WHY A GATE RATHER THAN JUST DELETING `other`.** Deleting the option without a gate would force
+the engine to pick the least-wrong class when the honest answer is "I cannot tell" — replacing
+a visible uncertainty with a confident error. The gate makes "not determinable" a first-class
+answer produced by its own decision. The cost is stated in the protocol: the classification head
+can no longer be right by elimination, only by evidence.
+
+**SECONDARY BENEFIT, VERIFIED.** Nine options lands in Laya's `choice:6-10` bucket, whose fitted
+temperature is **1.0** — valid. v2's ten options were also in that bucket, so this change is
+about semantics rather than calibration, but it keeps a margin below the invalid `choice:11+`
+boundary instead of sitting one option from it.
+
+**THIS IS A HYPOTHESIS, NOT A RESULT.** The matrix above motivates it; only a re-run of E-009
+on v3 shows whether it works. The expected effect is that `capital_action` and
+`regulatory_action` stop collapsing into `other` — and the risk is that forcing a choice makes
+them wrong *somewhere else* instead, which the same re-run will show.
+
+**ALREADY FOUND BY MAKING THE CHANGE.** The red-team stub hardcoded a fallback answer of
+`"other"`, which no longer exists. It raised `KeyError`, produced no answer at all, and the
+suite reported the symptom as *a missing answer* rather than *a broken stub*. Fixed: the stub
+now derives its winner from the options the protocol actually defines and treats "no trigger
+matched" as a normal outcome. Suite back to 43/43.
+
+**REVERSIBILITY.** Reversible — v2 is in git history and `check_migration` reports the change.
+Decisions recorded under v2 carry `spec=event_triage@2` and are distinguishable.
+
+**FOLLOW-UP.** Re-run E-009 on v3 against the same 120 items and the same labels. The
+comparison is paired, so any movement is attributable to the protocol change and nothing else.

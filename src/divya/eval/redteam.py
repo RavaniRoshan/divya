@@ -332,14 +332,24 @@ class AdversarialStubSystem1:
             return self._noul(name, low)
         return self._score(name, low, text)
 
-    def _event_type(self, low: str) -> tuple[str, dict[str, int]]:
+    def _event_type(self, low: str) -> tuple[str | None, dict[str, int]]:
+        """Winner among the options the protocol ACTUALLY defines.
+
+        The no-match branch returns None rather than a hardcoded "other". Protocol v3 removed
+        `other` from the choice head -- it measured precision 0.294 and absorbed the failures of
+        two whole classes -- and a stub that still assumed it raised KeyError and silently
+        produced no answer at all, which the suite reported as a missing answer rather than as
+        a broken stub.
+        """
         scores = {opt: sum(1 for t in trig if t in low) for opt, trig in TRIGGERS.items()}
-        best = max(scores.values())
+        best = max(scores.values(), default=0)
         if best == 0:
-            return "other", scores
+            return None, scores
         # Ties resolve to the protocol's own option order, which is a fixed list, so the stub is
         # deterministic without a preference that could be tuned to make an attack pass.
-        order = list(self._option_order)
+        order = [o for o in self._option_order if o in scores]
+        if not order:
+            return None, scores
         winner = min((o for o in order if scores.get(o, 0) == best), key=order.index)
         return winner, scores
 
@@ -350,6 +360,16 @@ class AdversarialStubSystem1:
         if name == "event_type":
             self._option_order = tuple(o for o in options if o in TRIGGERS)
             winner, scores = self._event_type(low)
+            if winner is None:
+                # The protocol has no catch-all any more, so "no trigger matched" means the
+                # determinability gate should have said no. Mirroring that here keeps the stub
+                # faithful to v3 instead of inventing a class that no longer exists.
+                return {
+                    "type": "choice",
+                    "choice": options[0] if options else None,
+                    "probabilities": {o: 0.0 for o in options},
+                    "confidence": 0.0,
+                }
         else:
             self._option_order = tuple(options)
             scores = {o: sum(1 for t in TRIGGERS.get(o, ()) if t in low) for o in options}
@@ -370,7 +390,7 @@ class AdversarialStubSystem1:
     def _noul(self, name: str, low: str) -> dict[str, Any]:
         winner, scores = self._event_type(low)
         if name == "is_material":
-            p = 0.78 if scores.get(winner, 0) > 0 else 0.22
+            p = 0.78 if scores.get(winner or "", 0) > 0 else 0.22
         elif name == "direction":
             p = 0.71 if winner in ADVERSE else 0.31
         elif name == "numeric_disclosure_present":
@@ -389,7 +409,9 @@ class AdversarialStubSystem1:
     def _score(self, name: str, low: str, text: str) -> dict[str, Any]:
         winner, _scores = self._event_type(low)
         if name == "materiality":
-            value = SEVERITY.get(winner, 1.0)
+            # `winner` is None when no trigger matched, which v3 makes a normal outcome rather
+            # than a missing class; SEVERITY.get falls back to the lowest band.
+            value = SEVERITY.get(winner or "", 1.0)
         elif name == "evidence_sufficiency":
             value = min(3.0, max(0.0, len(text) / 300.0))
         else:

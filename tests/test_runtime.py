@@ -425,8 +425,11 @@ def test_system1_only_makes_exactly_one_call_and_no_reasoning_model():
     assert res.state.system1_call_count == 1
     assert res.state.system2_records == []
     assert res.metrics()["prompt_tokens"] == 0
-    # Only tier-1 decisions, so the escalation targets are never paid for.
-    assert set(s1.calls[0]) == {"event_type", "is_material", "materiality", "direction"}
+    # Only tier-1 decisions, so the escalation targets are never paid for. Protocol v3 added
+    # `event_type_determinable`, which gates the classification head, so it is in the set now.
+    assert set(s1.calls[0]) == {
+        "event_type_determinable", "event_type", "is_material", "materiality", "direction",
+    }
 
 
 def test_system1_only_conclusion_comes_from_typed_answers():

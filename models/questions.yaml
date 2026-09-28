@@ -32,7 +32,7 @@ specs:
   # terminal that cannot explain itself is worse than no terminal.
   # ---------------------------------------------------------------------------
   - name: event_triage
-    version: 2
+    version: 3
     purpose: >-
       Classify a single Indian corporate disclosure into one event type, grade its
       materiality, and establish its direction. This is the minimum set a single-shot
@@ -40,12 +40,54 @@ specs:
     checkpoint: null          # null => let Laya's router choose by script/language
     max_len: 2048
     evaluation_dataset: evals/datasets/event_triage_v1.jsonl
-    # v2 merged `board_dividend` into `capital_action`. Not a taxonomy preference: v1's
-    # `event_type` had 11 options, which lands in Laya's `choice:11+` calibration bucket
-    # where the shipped temperature is 0.1006 and every confidence the engine emits for that
-    # question is disclaimed as uncalibrated by the library itself. Ten options lands in
-    # `choice:6-10`, which has a valid fitted temperature of 1.0. See DECISIONS D-008.
+    # v2 merged `board_dividend` into `capital_action`: v1 had 11 options, which lands in
+    # Laya's `choice:11+` bucket whose shipped temperature is 0.1006 and whose confidence the
+    # library itself disclaims. See D-008.
+    #
+    # v3 splits determinability out of the choice head. The measurement said `other` was an
+    # ATTRACTOR FOR UNCERTAINTY: `capital_action` (n=13) and `regulatory_action` (n=17) both
+    # scored F1 = 0.00 because their filings were absorbed by `other` (precision 0.294, 36
+    # false positives). A catch-all option in a typed-decision head does not stay a catch-all;
+    # it becomes where uncertainty goes. Rather than delete `other` -- which would force the
+    # engine to pick the least-wrong class when the honest answer is "I cannot tell" -- the
+    # question is split: `event_type_determinable` gates it, and the choice head runs only on
+    # documents that have an event in them. See D-021 and E-009.
     questions:
+
+      - name: event_type_determinable
+        type: noul
+        tier: 1
+        purpose: >-
+          Gate the classification head. Answers "does this document state a corporate event of
+          the kinds below?" and exists so that an unclassifiable document is labelled
+          unresolved by its own decision rather than absorbed by a catch-all class.
+        instructions: >-
+          Decide whether this document states a specific corporate event -- a result
+          announcement, a capital action, a fundraise, an acquisition, a leadership or auditor
+          change, a credit rating action, or a regulatory action against the company.
+          Answer no for a meeting notice, a routine filing, a trading-window closure, a
+          shareholder-meeting notice, or a document that describes no event at all.
+        criteria:
+          "false": >-
+            No classifiable corporate event is stated: a meeting notice, a compliance filing, a
+            trading-window closure, a newspaper publication, or a document describing no event.
+          "true": >-
+            A specific corporate event is stated, with enough in the text to tell which kind.
+        labels:
+          "false": no classifiable event
+          "true": event is determinable
+        calibration_expectation: >-
+          Expected to be high-confidence: this is a presence question about the text, not a
+          judgement about the company. A mid-confidence answer here is a signal that the
+          document is ambiguous and the classification head should be distrusted.
+        known_failure_modes:
+          - A filing that states an event opaquely ("the Board considered the matter") reads as
+            determinable when the specific event is not recoverable.
+          - Multi-event filings where one event is prominent and another is incidental.
+        downstream_consumers:
+          - event_type
+          - runtime.abstention
+          - terminal.event_stream
 
       - name: event_type
         type: choice
@@ -79,8 +121,10 @@ specs:
           board_meeting: >-
             Notice of a board meeting to consider results or a specific agenda item, with no
             results or decision stated yet.
-          other: >-
-            Any other corporate disclosure that does not fit the categories above.
+            NOTE: there is deliberately no `other` option here. The `other` class measured
+            precision 0.294 and absorbed the failures of two classes entirely; forcing the
+            engine to choose the least-wrong option when the honest answer is "I cannot tell"
+            is worse than saying so. Use `event_type_determinable` for that.
         required_evidence:
           - A stated corporate action, financial figure, or filing outcome.
         calibration_expectation: >-
@@ -95,6 +139,10 @@ specs:
             rather than earnings_result; which is correct depends on the filing's stated subject.
             This is the single most common error observed in practice.
           - Documents that are summaries or news rewrites rather than the filing itself.
+          - "With no catch-all, a document that genuinely fits none of the nine classes
+            forces a wrong answer. This is deliberate -- `event_type_determinable` exists to
+            catch those, and a wrong confident answer is the worse failure. The cost is that
+            this head can no longer be right by elimination, only by evidence."
         downstream_consumers:
           - event_state.materiality
           - terminal.event_stream
