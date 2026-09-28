@@ -252,6 +252,22 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    """Run the FastAPI backend that the Space UI frontend talks to.
+
+    Binds to loopback by default. There is no authentication -- this is a self-hosted
+    single-user service, and shipping an unauthenticated API on 0.0.0.0 would be a claim the
+    code does not back.
+    """
+    import uvicorn
+
+    if args.db:
+        os.environ["DIVYA_DB"] = args.db
+    print(f"divya api  http://{args.host}:{args.port}   db={args.db or os.environ.get('DIVYA_DB', 'data/store/divya.db')}")
+    uvicorn.run("divya.api:app", host=args.host, port=args.port, reload=args.reload)
+    return 0
+
+
 def cmd_terminal(args: argparse.Namespace) -> int:
     """Launch the TUI. Imported lazily so the CLI stays fast and headless-friendly."""
     from divya.terminal.app import main as terminal_main
@@ -526,6 +542,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("doctor", help="check the environment and report what works").set_defaults(
         func=cmd_doctor
     )
+
+    sv = sub.add_parser("serve", help="run the API that backs the web terminal")
+    sv.add_argument("--host", default=os.environ.get("DIVYA_HOST", "127.0.0.1"))
+    sv.add_argument("--port", type=int, default=int(os.environ.get("DIVYA_PORT", "8000")))
+    sv.add_argument("--db", default=None)
+    sv.add_argument("--reload", action="store_true")
+    sv.set_defaults(func=cmd_serve)
 
     t = sub.add_parser("terminal", help="launch the keyboard-first terminal (TUI)")
     t.add_argument("--db", default=None, help="sqlite path (default data/store/divya.db)")
