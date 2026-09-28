@@ -44,7 +44,7 @@ def _confidence_bar(p: float, width: int = 20) -> Text:
     exists to remove.
     """
     p = max(0.0, min(1.0, p))
-    filled = int(round(p * width))
+    filled = round(p * width)
     colour = "green" if p >= 0.75 else "yellow" if p >= 0.5 else "red"
     return Text("█" * filled + "░" * (width - filled), style=colour)
 
@@ -215,8 +215,7 @@ def _trace(state: SharedState) -> Panel:
                   "termination", "source_id", "observation_id", "content_hash", "chars",
                   "prompt_tokens", "completion_tokens", "repaired", "error"):
             if k in detail and detail[k] not in (None, "", [], {}):
-                v = detail[k]
-                bits.append(f"{k}={v}" if not isinstance(v, str) else f"{k}={v}")
+                bits.append(f"{k}={detail[k]}")
         t.add_row(str(tr.index), tr.kind, "  ".join(bits))
 
     if len(state.trace) > 12:
@@ -237,7 +236,8 @@ def render(result: LoopResult, console: Console | None = None) -> None:
 
     m = result.metrics()
     cost = Table.grid(padding=(0, 3))
-    cost.add_column(style="dim"); cost.add_column()
+    cost.add_column(style="dim")
+    cost.add_column()
     cost.add_row("system-1 calls", str(m["system1_calls"]))
     cost.add_row("system-2 calls", str(m["system2_calls"]))
     cost.add_row("turns", str(m["turns"]))

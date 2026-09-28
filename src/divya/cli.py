@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import shutil
 import sys
 from datetime import UTC, date, datetime, timedelta
@@ -44,6 +45,22 @@ TRACES = Path("data/traces")
 # ---------------------------------------------------------------------------
 
 
+def _available_ram_gib() -> float:
+    """Available RAM in GiB, or -1.0 if it cannot be read.
+
+    A doctor command that reports a number it invented is worse than one that admits it does
+    not know: this box is RAM-constrained, so a wrong figure here would mislead exactly the
+    person who needs it.
+    """
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) / 2**20
+    except (OSError, ValueError, IndexError):
+        pass
+    return -1.0
+
+
 def cmd_doctor(args: argparse.Namespace) -> int:
     """Report what actually works in this environment. Never guesses, never optimises."""
 
@@ -52,12 +69,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print("system")
     print(f"  python           {sys.version.split()[0]}")
     print(f"  platform         {sys.platform}")
-    print(f"  cpu cores        {__import__('os').cpu_count()}")
-    try:
-        free = 0.0
-        print(f"  ram available    {free:.1f} GiB")
-    except Exception:
-        print("  ram available    unknown (psutil not installed)")
+    print(f"  cpu cores        {os.cpu_count()}")
+    print(f"  ram available    {_available_ram_gib():.1f} GiB")
 
     print("\nsystem-1 (laya)")
     s1 = LayaSystem1()
