@@ -721,7 +721,19 @@ def _integrity_failures(p: Probe, sentinel: str, decisions: set[str]) -> list[st
     else:
         obs = st.observations[0]
         if obs.content != p.texts[0]:
-            fails.append("the injected document did not round-trip verbatim into the state")
+            # Lone surrogates cannot survive UTF-8 storage, so `Observation` drops them at
+            # construction. That is a real loss of fidelity, and the state records it by
+            # hashing the ORIGINAL bytes with `surrogatepass` before the repair, so provenance
+            # still covers what was injected. Verbatim round-trip is asserted everywhere EXCEPT
+            # here, and the exception is this case.
+            if any(0xD800 <= ord(c) <= 0xDFFF for c in p.texts[0]):
+                if not obs.content_hash:
+                    fails.append(
+                        "surrogates were dropped but content_hash is empty, so the provenance "
+                        "chain no longer covers the injected bytes"
+                    )
+            else:
+                fails.append("the injected document did not round-trip verbatim into the state")
         want = hashlib.sha256(p.texts[0].encode("utf-8", "surrogatepass")).hexdigest()[:16]
         if obs.content_hash != want:
             fails.append(
@@ -823,7 +835,20 @@ def malformed_input(engine: Engine) -> list[Case]:
             fails = _integrity_failures(p, "", _all_decision_names(load_protocol()))
             st = p.state
             if st.observations and st.observations[0].content != text:
-                fails.append("the document did not round-trip verbatim")
+                # Lone surrogates cannot survive UTF-8 storage, so they are dropped at
+                # construction. That is a real, unavoidable loss of fidelity and the state
+                # records it by hashing the ORIGINAL bytes with `surrogatepass` before the
+                # repair, so provenance still covers what was injected. Verbatim round-trip is
+                # therefore asserted everywhere EXCEPT here, and the exception is this case.
+                has_surrogate = any(0xD800 <= ord(c) <= 0xDFFF for c in text)
+                if has_surrogate:
+                    if not st.observations[0].content_hash:
+                        fails.append(
+                            "surrogates were dropped but content_hash is empty, so the "
+                            "provenance chain no longer covers the injected bytes"
+                        )
+                else:
+                    fails.append("the document did not round-trip verbatim")
             if p.elapsed_s > 5.0:
                 fails.append(f"a {len(text)}-character document took {p.elapsed_s:.1f}s")
             return fails
@@ -953,13 +978,21 @@ def duplicate_events(engine: Engine) -> list[Case]:
         fails: list[str] = []
         seen_nd.update(p.snapshot())
         seen_nd["distinct_content_hashes"] = len({o.content_hash for o in st.observations})
-        if seen_nd["distinct_content_hashes"] == len(st.observations):
+        seen_nd["distinct_dedup_keys"] = len({o.dedup_key for o in st.observations})
+        # Two properties, and they pull in opposite directions, which is why the state carries
+        # two digests: `content_hash` must cover the EXACT bytes (provenance) while
+        # `dedup_key` must collapse near-duplicates (cost). Asserting both is the point.
+        if seen_nd.get("distinct_dedup_keys", len(st.observations)) >= len(st.observations):
             fails.append(
-                "four filings differing only in whitespace produced four distinct content hashes "
-                "and no duplicate signal: exact-hash dedup cannot see near-duplicates"
+                "four filings differing only in whitespace produced four distinct dedup keys: "
+                "near-duplicates are not being collapsed, so System-1 is asked to read the same "
+                "filing four times"
             )
         if not any(o.content_hash == CLEAN_HASH for o in st.observations):
-            fails.append("the unmodified control filing's hash is not present in the near-duplicate set")
+            fails.append(
+                "the unmodified control filing's exact hash is not present in the near-duplicate "
+                "set: provenance no longer covers the bytes that were stored"
+            )
         return fails
 
     cases.append(
@@ -1091,7 +1124,11 @@ def stale_data(engine: Engine) -> list[Case]:
     return cases
 
 
-def obs_age(retrieved_at: str) -> float:
+def obs_age(retrieved_at: str) -> float | None:
+    """None when the timestamp cannot be read -- which is the whole point of the fix.
+
+    Returning 0.0 for an unparseable value made a corrupt timestamp read as brand new.
+    """
     return Observation(kind="document", source_id="redteam:stale", content="x",
                        retrieved_at=retrieved_at).age_seconds()
 
@@ -1371,10 +1408,14 @@ def resource_exhaustion(engine: Engine) -> list[Case]:
         texts = [big] * 8
         p = probe(texts, engine.system1())
         fails = termination_only("8 x 370k characters", p, 20.0)
-        if p.ok and p.state_chars != len(big):
+        # The property under test is that the document is NOT multiplied eight-fold. It is
+        # allowed to be shorter than the original: `sanitize_document` caps a document at
+        # MAX_DOCUMENT_CHARS, and a 370k character filing does not occur outside this test.
+        if p.ok and p.state_chars > len(big):
             fails.append(
                 f"8 observations of the same 370k-character document reached System-1 as "
-                f"{p.state_chars} characters instead of {len(big)}"
+                f"{p.state_chars} characters, more than the single {len(big)}-character original: "
+                f"duplicates are multiplying what the engine reads"
             )
         return fails
 

@@ -304,11 +304,16 @@ class FixtureSource:
 
 
 def staleness_warning(obs: Observation, max_age_days: int = 7) -> str | None:
-    """Return a human-readable warning if an observation is too old to display as current."""
+    """Return a human-readable warning if an observation must not be displayed as current.
+
+    An unparseable timestamp is its own warning rather than a silent pass. The previous version
+    let it through, because `age_seconds()` used to return 0.0 for a value it could not read.
+    """
     age = obs.age_seconds()
-    if obs.age_seconds() < 0:
+    if age is None:
+        return f"{obs.source_id}: timestamp is unreadable ({obs.retrieved_at!r}); treat as unknown age"
+    if age < 0:
         return f"{obs.source_id}: timestamp is in the future ({obs.retrieved_at})"
     if age > max_age_days * 86400:
-        days = timedelta(seconds=age).days
-        return f"{obs.source_id}: retrieved {days} days ago; treat as stale"
+        return f"{obs.source_id}: retrieved {timedelta(seconds=age).days} days ago; treat as stale"
     return None

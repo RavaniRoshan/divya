@@ -271,7 +271,13 @@ class HeuristicProvider:
 
     #: Decisions requested on the first turn, then the escalation set.
     PRIMARY: tuple[str, ...] = ("event_type", "is_material", "materiality", "direction")
-    ESCALATION: tuple[str, ...] = ("evidence_sufficiency", "is_summary_only")
+    # `numeric_disclosure_present` is included deliberately: it is the cheap canary on the
+    # ingestion path, and leaving it out meant the tier-2 checks never ran on the
+    # no-LLM degradation path -- a table-extraction regression would have been invisible in
+    # exactly the configuration that is supposed to be the safe one.
+    ESCALATION: tuple[str, ...] = (
+        "evidence_sufficiency", "is_summary_only", "numeric_disclosure_present",
+    )
 
     def __init__(
         self,

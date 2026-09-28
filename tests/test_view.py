@@ -157,19 +157,30 @@ def test_a_stale_observation_is_labelled_stale_with_its_age():
     assert "400d ago" in out
 
 
-def test_a_future_timestamp_is_called_out_even_though_the_state_calls_it_fresh():
-    """The view catches what `SharedState.is_fresh` does not.
+def test_a_future_timestamp_is_never_called_fresh():
+    """A clock skewed into the future must not read as current.
 
-    A clock skewed into the future produces a negative age, which the state's freshness check
-    treats as fresh. The terminal refuses to display it as current. See docs/loop/REDTOOM.md.
+    This test originally asserted the opposite — its name said "even though the state calls it
+    fresh" and its body asserted `is_fresh is True`, "the defect this test documents". The
+    red-team suite found that a future timestamp passed the freshness check, and the check has
+    since been fixed. It is now a regression test for that fix. See docs/loop/REDTOOM.md.
     """
     ahead = (datetime.now(UTC) + timedelta(days=2)).isoformat()
     obs = _obs(retrieved_at=ahead, is_simulated=False)
     state = SharedState(protocol_version="0.1.0", domain="t", objective="o", observations=[obs])
-    assert state.is_fresh is True, "the defect this test documents"
+    assert state.is_fresh is False, "a future timestamp must never be fresh"
+    assert obs.age_seconds() is not None and obs.age_seconds() < 0
 
     out = _render(_result(observations=[obs]))
     assert "timestamp in the future" in out
+
+
+def test_an_unreadable_timestamp_is_never_called_fresh():
+    """Unknown age must not be presented as new. A parse failure returned 0.0, i.e. 'now'."""
+    obs = _obs(retrieved_at="not-a-timestamp", is_simulated=False)
+    state = SharedState(protocol_version="0.1.0", domain="t", objective="o", observations=[obs])
+    assert obs.age_seconds() is None
+    assert state.is_fresh is False
 
 
 def test_a_simulated_observation_is_not_also_labelled_by_age():

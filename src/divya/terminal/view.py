@@ -52,7 +52,9 @@ def _confidence_bar(p: float, width: int = 20) -> Text:
 def _freshness(obs: Observation) -> Text:
     age = obs.age_seconds()
     if obs.is_simulated:
-        return Text("SIMULATED — not market data", style="bold magenta")
+        return Text("SIMULATED - not market data", style="bold magenta")
+    if age is None:
+        return Text(f"UNKNOWN AGE - timestamp unreadable ({obs.retrieved_at})", style="bold red")
     if age < 0:
         return Text(f"timestamp in the future ({obs.retrieved_at})", style="bold red")
     if age > MAX_OBSERVATION_AGE_S:

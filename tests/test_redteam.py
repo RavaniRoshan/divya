@@ -129,9 +129,11 @@ def test_control_filings_classify_as_themselves_under_the_stub():
 def test_probe_reports_a_raise_instead_of_propagating_it():
     """A System-1 that raises must surface as a failed probe, never as a silent pass.
 
-    In `system1_only` mode the runtime catches it and terminates `error`, which is the
-    documented degradation path; in the loop path it escapes, which is the defect the
-    `malformed_input/system1_raising_on_degenerate_input` red-team case pins.
+    This test originally asserted that the raising engine *escaped* the loop path, which was
+    the defect the `malformed_input/system1_raising_on_degenerate_input` case pinned: the
+    except clause caught only `(TimeoutError, OSError)`, so any other engine exception broke
+    the totality guarantee UNIFIED_MODEL.md claims. That is fixed, and the loop path now fails
+    safely too. See docs/loop/REDTOOM.md.
     """
     class Exploding:
         def is_available(self) -> bool:
@@ -147,19 +149,30 @@ def test_probe_reports_a_raise_instead_of_propagating_it():
     assert "exploded" in p.state.termination_reason
     assert p.state.system1_records == [], "a raising engine must not leave a half-written record"
 
-    loop_path = RT.probe(
+    loop_path = RT.probe(  # the loop path must fail the same way, not escape
         ["x"], Exploding(),
         config=RT.LoopConfig(system1_only=False, max_turns=2),
     )
-    assert not loop_path.ok
-    assert "engine exploded" in loop_path.error
+    # The loop path must fail SAFELY now, exactly as system1_only does. It used to assert
+    # `not loop_path.ok`, documenting a defect: the except clause caught only
+    # (TimeoutError, OSError), so any other engine exception escaped the run and broke the
+    # totality guarantee UNIFIED_MODEL.md claims.
+    assert loop_path.ok
+    assert loop_path.termination == "error"
+    assert "exploded" in loop_path.state.termination_reason
+    # `probe.error` is now empty, because nothing escaped. The failure is reported through the
+    # termination status instead, which is the point.
 
 
 def test_probe_captures_a_raising_observation_construct():
     """`probe` must survive input the state model refuses, or the class cannot report on it."""
     p = RT.probe(["\udcff\udcfe"], StubSystem1())
-    assert not p.ok
-    assert "surrogate" in p.error.lower() or "utf-8" in p.error.lower()
+    # A document made only of lone surrogates is degenerate, not fatal: the runtime must
+    # handle it and terminate. It used to raise during `Observation` construction, which is
+    # the defect this case pinned.
+    assert p.ok
+    assert p.state.termination is not None
+    assert p.error == "", "nothing should escape: the runtime handled the degenerate input"
 
 
 # --- a case can actually fail ----------------------------------------------
@@ -237,10 +250,13 @@ def test_stub_only_suite_runs_and_reports_itself(tmp_path: Path):
     assert report["engines"]["used_for"]["stale_data"] == "lexical stub"
     assert report["totals"]["cases"] == 5
     assert "not a security audit" in report["what_this_is"]
-    # The two known freshness defects must be visible in the artifact, not only in prose.
+    # This originally asserted that the two freshness defects were present and failing. Both
+    # are fixed: `age_seconds()` returns None on an unparseable timestamp instead of 0.0, and
+    # `is_fresh` rejects negative ages and unreadable timestamps. The suite is clean, and this
+    # is now a regression test for those fixes.
     failed = {c["name"] for r in report["results"] for c in r["cases"] if c["status"] == "fail"}
-    assert failed == {"future_timestamp", "unparseable_timestamp"}
-    assert rc == 1, "a suite with two known failures must exit non-zero"
+    assert failed == set(), f"stale_data should be clean now, got: {failed}"
+    assert rc == 0, "a clean suite must exit zero"
 
 
 def test_unknown_class_is_rejected_before_any_work(tmp_path: Path):
@@ -326,10 +342,11 @@ def test_module_is_runnable_as_a_script(tmp_path: Path):
     assert out.exists()
     report = json.loads(out.read_text(encoding="utf-8"))
     failed = [c["name"] for c in report["results"][0]["cases"] if c["status"] == "fail"]
-    assert failed == ["canary_requested_by_the_degraded_path"], (
-        "the numeric canary omission is a known defect; if this starts passing, the fix landed "
-        "and this assertion must be updated deliberately rather than by accident"
-    )
+    # This assertion originally pinned the numeric-canary omission as a known defect and said
+    # to update it deliberately when the fix landed. It has: `HeuristicProvider.ESCALATION` now
+    # includes `numeric_disclosure_present`, so the tier-2 ingestion canary runs on the
+    # no-LLM degradation path and this class is clean.
+    assert failed == [], f"numeric_extraction_trap should be clean now, got: {failed}"
 
 
 def test_redteam_module_never_imports_laya_directly():

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import uuid
 from datetime import UTC, datetime
 from enum import Enum
@@ -43,6 +44,39 @@ def utc_now() -> str:
 
 def new_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:12]}"
+
+
+def _drop_surrogates(text: str) -> str:
+    return "".join(
+        ch for ch in text
+        if not (0xD800 <= ord(ch) <= 0xDFFF)
+    )
+
+
+def _has_surrogates(text: str) -> bool:
+    return any(0xD800 <= ord(ch) <= 0xDFFF for ch in text)
+
+
+_WS = re.compile(r"\s+")
+
+
+def _normalise(text: str) -> str:
+    return _WS.sub(" ", text).strip().lower()
+
+
+def _exact_digest(text: str) -> str:
+    """SHA-256 over the exact bytes, falling back to a repaired copy if they will not encode.
+
+    The fallback changes the digest, which is why `dedup_key` exists alongside it: provenance
+    wants the exact bytes, duplicate detection wants the normalised form, and one hash cannot
+    honestly be both.
+    """
+    try:
+        return hashlib.sha256(text.encode("utf-8", "surrogatepass")).hexdigest()[:16]
+    except (UnicodeEncodeError, ValueError):
+        return hashlib.sha256(
+            _drop_surrogates(text).encode("utf-8", "surrogatepass")
+        ).hexdigest()[:16]
 
 
 class TerminationStatus(str, Enum):
@@ -73,17 +107,42 @@ class Observation(BaseModel):
     retrieved_at: str = Field(default_factory=utc_now)
     published_at: str | None = None
     is_simulated: bool = False
+    #: SHA-256 over the EXACT text received. This is the provenance chain: it must cover the
+    #: bytes that were actually injected or published, or a trace cannot prove what was decided
+    #: on. Do not normalise it.
     content_hash: str = ""
+    #: Whitespace- and case-normalised digest, used only for duplicate detection. A feed that
+    #: re-emits one filing with different line wrapping is still one filing, and an exact hash
+    #: cannot see that -- the red-team case `duplicate_events/near_duplicate_whitespace` turned
+    #: one filing into four "different" documents and multiplied what System-1 was asked to read.
+    dedup_key: str = ""
 
     def model_post_init(self, _context: Any) -> None:
+        # The digest is taken over the ORIGINAL text, before any repair, so the provenance
+        # chain still covers the bytes that were actually injected. Repairing first and then
+        # hashing would mean the hash describes a document nobody received.
         if not self.content_hash:
-            self.content_hash = hashlib.sha256(self.content.encode("utf-8")).hexdigest()[:16]
+            object.__setattr__(self, "content_hash", _exact_digest(self.content))
+        if not self.dedup_key:
+            object.__setattr__(self, "dedup_key", _exact_digest(_normalise(self.content)))
+        # Lone surrogates cannot be UTF-8 encoded and crash anything that tries. A filing
+        # scraped from a PDF can contain them, so they are dropped here rather than exploding
+        # later inside a logger, a JSON dump, or a database write.
+        if _has_surrogates(self.content):
+            object.__setattr__(self, "content", _drop_surrogates(self.content))
 
-    def age_seconds(self, now: datetime | None = None) -> float:
+    def age_seconds(self, now: datetime | None = None) -> float | None:
+        """Age in seconds, or None when the timestamp cannot be read.
+
+        None, not 0.0. A previous version returned 0.0 on a parse failure, which made a
+        corrupt timestamp read as *brand new* — the exact opposite of the truth, and the
+        red-team suite found it. An unreadable timestamp is unknown age, and unknown must not
+        be presented as fresh.
+        """
         try:
             ts = datetime.fromisoformat(self.retrieved_at)
-        except ValueError:
-            return 0.0
+        except (ValueError, TypeError):
+            return None
         if ts.tzinfo is None:
             ts = ts.replace(tzinfo=UTC)
         return ((now or datetime.now(UTC)) - ts).total_seconds()
@@ -311,24 +370,59 @@ class SharedState(BaseModel):
     def system1_call_count(self) -> int:
         return len(self.system1_records)
 
+    def unique_observations(self) -> list[Observation]:
+        """Observations de-duplicated by content hash, first occurrence winning.
+
+        The red-team suite showed a filing repeated ten times reached System-1 as 2,218
+        characters instead of 220, and a 3.5 MB case reached it in full. A market terminal
+        ingesting a window will see the same filing twice; paying for it twice is a cost bug,
+        and weighting the engine toward whichever copy arrived last is a correctness bug.
+        """
+        seen: set[str] = set()
+        out: list[Observation] = []
+        for obs in self.observations:
+            key = obs.dedup_key or obs.content_hash
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(obs)
+        return out
+
     def observation_text(self) -> str:
-        """Exactly the text handed to System-1. Digestmed alongside it in the record."""
-        return "\n\n".join(obs.content for obs in self.observations)
+        """Exactly the text handed to System-1. Digestmed alongside it in the record.
+
+        Sanitised at this boundary rather than at ingestion, so that the stored document stays
+        exactly what the source published and only the text the *engine sees* is cleaned. A
+        sanitising ingest would quietly alter the archival record.
+        """
+        from divya.protocol.sanitize import sanitize_document
+
+        parts: list[str] = []
+        for obs in self.unique_observations():
+            clean = sanitize_document(obs.content).text
+            if clean.strip():
+                parts.append(clean)
+        return "\n\n".join(parts)
 
     def state_digest(self) -> str:
         return hashlib.sha256(self.observation_text().encode("utf-8")).hexdigest()[:16]
 
     @property
     def is_fresh(self) -> bool:
-        """False if any observation is missing or implausibly old.
+        """True only if every observation is readable, non-future, and within the window.
 
-        A terminal that shows a stale price as current is worse than one that shows nothing,
-        so freshness is a computed property of the state rather than a field someone remembers
-        to update.
+        A terminal that shows a stale price as current is worse than one that shows nothing, so
+        freshness is computed rather than stored. Three separate bugs came out of getting this
+        wrong: an unparseable timestamp read as fresh, a *future* timestamp read as fresh, and
+        an empty state reading as fresh. All three are now False, and each is a red-team case.
         """
         if not self.observations:
             return False
-        return all(obs.age_seconds() < MAX_OBSERVATION_AGE_S for obs in self.observations)
+        for obs in self.observations:
+            age = obs.age_seconds()
+            if age is None or age < 0 or age > MAX_OBSERVATION_AGE_S:
+                return False
+        return True
 
 
 #: An observation older than this is surfaced as stale in the UI. Deliberately generous --

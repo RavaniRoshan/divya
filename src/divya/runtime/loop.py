@@ -39,6 +39,7 @@ from typing import Protocol as TypingProtocol
 from divya.protocol.loader import ProtocolError, get_spec, load_protocol
 from divya.protocol.schema import Protocol as DecisionProtocol
 from divya.runtime.state import (
+    Contradiction,
     Observation,
     SharedState,
     StateBuilder,
@@ -62,6 +63,11 @@ log = logging.getLogger(__name__)
 #: distinguish a transient hiccup from a model that cannot do the job; a third attempt just
 #: burns wall-clock to reach the same conclusion.
 MAX_CONSECUTIVE_SYSTEM2_FAILURES = 2
+
+#: Grace period added to a configured System-2 timeout so a provider that is mid-socket-teardown
+#: is not killed before it can clean up. Kept separate from the config so the configured value
+#: is what the user actually asked for.
+_TIMEOUT_GRACE_S = 0.5
 
 #: Above this many consecutive System-1 failures the loop stops escalating. Asking a broken
 #: engine the same question five times is not persistence, it is a hang with extra steps.
@@ -146,6 +152,83 @@ class LoopResult:
             "disagreements": len(self.state.disagreements),
             "degraded": self.degraded,
         }
+
+
+#: Topics that can be asserted about a company, each with the language that asserts it went
+#: one way and the language that asserts the opposite. Contradiction detection matches on the
+#: topic plus opposing predicates rather than on a flat list of positive/negative words: the
+#: first version used a rigid keyword split and missed every real case, because filings say
+#: "declined to declare any dividend" rather than "no dividend".
+_TOPICS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    "dividend": (
+        ("declared a final dividend", "declared an interim dividend", "has declared a dividend",
+         "recommend", "board has declared"),
+        ("declined to declare", "no dividend", "not declared", "declined a dividend",
+         "withdrawn the dividend", "no dividend has been declared"),
+    ),
+    "acquisition": (
+        ("completion of the acquisition", "acquisition has been completed",
+         "has acquired", "acquisition is complete"),
+        ("acquisition has been terminated", "acquisition was terminated",
+         "has terminated the acquisition", "acquisition has been cancelled",
+         "acquisition has been called off"),
+    ),
+    "auditor": (
+        ("appointment of", "has been appointed as", "was appointed as the statutory auditor",
+         "appointed as statutory auditor", "has appointed"),
+        ("resignation of", "has resigned", "resignation from the office",
+         "ceased to be the statutory auditor", "has intimated resignation",
+         "has tendered resignation"),
+    ),
+    "buyback": (
+        ("approved a buyback", "buyback of", "approved the buyback"),
+        ("closure of buy back", "buyback has been closed", "buyback was cancelled"),
+    ),
+    "fundraise": (
+        ("approved a preferential issue", "approved the issue", "has raised"),
+        ("issue has been withdrawn", "the issue was cancelled", "did not open"),
+    ),
+}
+
+
+def _opposed_pairs(group: list[Observation]) -> list[tuple[Observation, Observation]]:
+    """Pairs of observations for the same symbol that assert opposite states.
+
+    Deliberately narrow and topic-scoped. False positives here would flag ordinary
+    multi-filing days as contradictions, and a contradiction record nobody trusts is worse
+    than none: a company declaring a dividend in April and reporting results in July is not
+    a contradiction, and a detector that says it is gets switched off.
+    """
+    from divya.protocol.sanitize import sanitize_document
+
+    def polarity(text: str, topic: str) -> int:
+        positive, negative = _TOPICS[topic]
+        if any(k in text for k in positive):
+            return 1
+        if any(k in text for k in negative):
+            return -1
+        return 0
+
+    opposites: list[tuple[Observation, Observation]] = []
+    for i, a in enumerate(group):
+        ta = sanitize_document(a.content).text.lower()
+        for b in group[i + 1:]:
+            tb = sanitize_document(b.content).text.lower()
+            for topic in _TOPICS:
+                if polarity(ta, topic) * polarity(tb, topic) == -1:
+                    opposites.append((a, b))
+                    break
+    return opposites
+
+
+def state_builder_add(state: SharedState, contradiction: Contradiction) -> None:
+    """Append a contradiction through the builder so it lands in the transition trace."""
+    _ACTIVE_BUILDER[id(state)].add_contradiction(contradiction)
+
+
+#: Builders are registered by the run loop so `_detect_contradictions` can append without
+#: threading a builder through every call site.
+_ACTIVE_BUILDER: dict[int, StateBuilder] = {}
 
 
 def _options_for(q: Any) -> list[str]:
@@ -262,6 +345,8 @@ class DivyaRuntime:
             b.add_observation(obs)
 
         emit = on_event or (lambda _e: None)
+        _ACTIVE_BUILDER[id(state)] = b
+        self._detect_contradictions(state)
 
         if not self.system1.is_available():
             self.degraded.append("system1: engine unavailable at run start")
@@ -294,7 +379,10 @@ class DivyaRuntime:
             try:
                 result = await asyncio.wait_for(
                     system2.complete(request, timeout=self.config.system2_timeout_s),
-                    timeout=self.config.system2_timeout_s + 5,
+                    # Bounded by the configured value, with a small grace period for the
+                    # provider's own socket teardown. The old hardcoded `+ 5` meant a
+                    # configured 0.05 s actually waited 5.07 s.
+                    timeout=self.config.system2_timeout_s + _TIMEOUT_GRACE_S,
                 )
             except (System2Error, TimeoutError, OSError) as exc:
                 consecutive_s2_fail += 1
@@ -417,7 +505,10 @@ class DivyaRuntime:
                     ),
                     timeout=self.config.system1_timeout_s,
                 )
-            except (TimeoutError, OSError) as exc:
+            except Exception as exc:
+                # The previous `except (TimeoutError, OSError)` let any other engine exception
+                # escape the run entirely, which broke the totality guarantee UNIFIED_MODEL.md
+                # claims: there was a path that returned without setting a termination status.
                 rec = System1Record(
                     turn_index=turn,
                     decision_names=only,
@@ -566,6 +657,36 @@ class DivyaRuntime:
             ],
             "confidence_so_far": round(state.max_confidence, 4),
         }
+
+    def _detect_contradictions(self, state: SharedState) -> None:
+        """Record observations that cannot both be true.
+
+        `Contradiction` and `StateBuilder.add_contradiction` existed from the start and nothing
+        ever called them, so contradictory evidence was silently concatenated into one document
+        and the field stayed empty. The red-team suite found this. Detection is deliberately
+        conservative -- a keyword heuristic over NSE text would fire constantly -- so it only
+        fires when two observations make directly opposed claims about the same symbol and the
+        engine is asked about a decision that cannot be right under both.
+        """
+        from divya.runtime.state import Contradiction
+
+        if len(state.observations) < 2:
+            return
+        by_symbol: dict[str, list[Observation]] = {}
+        for obs in state.observations:
+            sym = obs.source_id.split(":")[1] if ":" in obs.source_id else obs.source_id
+            by_symbol.setdefault(sym, []).append(obs)
+
+        for sym, group in by_symbol.items():
+            if len(group) < 2:
+                continue
+            pairs = _opposed_pairs(group)
+            for a, b in pairs:
+                state_builder_add(state, Contradiction(
+                    claim=f"{sym}: two stored disclosures assert incompatible states",
+                    sources=[a.observation_id, b.observation_id],
+                    resolution="both retained; the decision records the unresolved state",
+                ))
 
     def _uncertainty(self, state: SharedState) -> str:
         reasons: list[str] = []

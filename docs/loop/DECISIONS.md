@@ -522,3 +522,93 @@ here because "we might need it later" is how a research box quietly becomes 40 G
 **REVERSIBILITY.** Fully reversible — `ollama pull qwen3:4b` restores it in minutes. Nothing in
 the code references a model that is no longer present; `divya doctor` warns when the configured
 model is not pulled, so a missing one is diagnosed rather than mysterious.
+
+---
+
+## D-015 — 2026-09-28 — The A-vs-D difference is significant, and the mechanism is narrow
+
+**DECISION.** Record H3 as **supported on tested evidence** rather than asserted, and correct
+the per-class failure count.
+
+**CONTEXT.** The independent review was right that "H3 SUPPORTED" was an assertion over six net
+items. Phase 7 requires a claim to be falsifiable, and an untested difference is not a finding.
+
+**METHOD.** `src/divya/eval/significance.py`, computed from the raw artifact with nothing
+hardcoded from the reported numbers. Two tests answering different questions: McNemar's **exact**
+test on the discordant pairs (exact rather than chi-square, because with six discordant
+observations a normal approximation would report a p-value as though it were sixty), and a
+**seeded** paired bootstrap resampling *events* — one event yields several decisions, so
+resampling within an event would understate the variance.
+
+**RESULT.**
+
+| Quantity | Value |
+|---|---|
+| n | 120 paired events |
+| accuracy A / D | 0.5583 / 0.5083 |
+| difference (D − A) | **−0.0500** |
+| both correct / both wrong | 61 / 53 |
+| **only A correct / only D correct** | **6 / 0** |
+| McNemar exact | **p = 0.0312** |
+| bootstrap 95% CI | **[−0.0917, −0.0167]**, excludes zero |
+| P(Δ < 0) | 0.9984 |
+
+**WHY IT IS SIGNIFICANT DESPITE ONLY SIX DISCORDANT PAIRS:** all six go the same way. A 6–0
+split has probability (1/2)^6 = 0.0156 one-sided. The loop **never once fixed an error the
+single-shot path made, and broke six correct answers**. That is a much sharper statement than
+"D scored lower", and it is the honest description of what happened.
+
+**A NUMBER THAT WAS WRONG.** The agreement matrix shows **three** classes at zero accuracy, not
+two: `capital_action`, `fundraise` **and** `regulatory_action`. And **36** errors land on `other`,
+not 27. The `other`-attractor diagnosis is unchanged in direction and larger than previously
+stated.
+
+**TRADE-OFFS.** n=120 with 6 discordant pairs is a small experiment. p = 0.0312 is not a
+comfortable margin, and this says nothing about a stronger System-2 or a different protocol.
+It says D was worse *here*.
+
+**REVERSIBILITY.** Fully reproducible from the committed artifact; re-running it after a new
+evaluation updates the conclusion automatically.
+
+**FOLLOW-UP.** The bootstrap is the number to quote. If a future run produces a CI spanning
+zero, the correct statement is "not resolved", and `report()` says exactly that.
+
+---
+
+## D-016 — 2026-09-28 — Full filing text from the PDF, not the one-line summary
+
+**DECISION.** Decisions are made on text extracted from the announcement's attached PDF, with
+the `attchmntText` summary as a labelled fallback.
+
+**CONTEXT.** Blocked item B-004. NSE's API returns only a summary; the filing is in the PDF.
+
+**EVIDENCE.** Measured on live filings, 2026-09-28: **105 → 3,770 characters (35.9×)** on one
+event, 4.5×–33× across a sample. Median `attchmntText` across the September 2026 feed is
+**154 characters**.
+
+**WHY THIS IS THE LARGEST QUALITY LEVER AVAILABLE.** A materiality judgement needs figures —
+amounts, percentages, share counts — and summaries routinely omit them. Every evaluation run
+before this point measured the system on text that cannot support the decision it was being
+asked to make. The reported 0.558 is a number about summaries.
+
+**DESIGN.** Fetch PDF → extract with `pypdf` → strip the exchange address block → cache by the
+exchange's own `seq_id`. Three failure modes handled explicitly rather than discovered later:
+**no text layer** (many Indian filings are scanned images; treated as a failure, never as an
+empty document, because "nothing to decide" reported as a finding is the worst outcome
+available), **boilerplate** (removed as the most expensive and least informative text in the
+document), and **fetch cost** (cached, so a filing is downloaded at most once).
+
+**NOT DONE DELIBERATELY.** Stored decisions are not recomputed when a filing is upgraded.
+Changing the text a decision was made on, after the fact, would make that decision a lie.
+Re-decide explicitly.
+
+**THREE BUGS FOUND BY TESTING THE STRIPPING RATHER THAN EYEBALLING IT.**
+1. Patterns anchored on `"To,"` missed the header whenever the filing date sat between them,
+   which is the normal layout. They now match the address landmarks directly.
+2. The postcode pattern did not match `"Mumbai - 400 001"`, so BSE headers survived intact.
+3. The over-strip guard was an absolute 200-character threshold and rejected valid short
+   filings unmodified; changed to a 50% ratio it then rejected filings where the address
+   genuinely is most of the text. Only catastrophic removal triggers it now.
+
+**FOLLOW-UP.** Re-run E-009 on the enriched dataset and report whether 0.558 and the three
+zero-F1 classes change. That is the experiment this enables.

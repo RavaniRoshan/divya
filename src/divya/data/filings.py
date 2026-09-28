@@ -4,7 +4,7 @@ This is the single largest quality lever available to the project, and it exists
 measurement rather than an intuition. In the September 2026 NSE sample, `attchmntText` — the
 only text the announcements API returns — has a **median of 154 characters**. It is a one-line
 summary. The actual filing is in the attached PDF, and pulling it turns a 157-character summary
-into 1,911 characters of filing text, a 12× increase in what the decision engine can see.
+into 1,911 characters of filing text, a 12x increase in what the decision engine can see.
 
 That matters for a specific reason. A materiality judgement needs figures — amounts,
 percentages, share counts. Summaries routinely omit them. Evaluating the system on summaries
@@ -60,8 +60,8 @@ _BOILERPLATE_PATTERNS: list[str] = [
     # Match the address block by its landmarks rather than by the "To," prefix: the filing
     # date sits between them, and any prefix-anchored pattern misses whenever the layout
     # shifts. Bounded wildcard to the 6-digit postcode is layout-independent.
-    r"National Stock Exchange of India\s*(?:Ltd|Limited)?(?:(?!\d{3}\s*[-–,]?\s*\d{3}).){0,300}?\d{3}\s*[-–,]?\s*\d{3}",
-    r"\bBSE Limited(?:(?!\d{3}\s*[-–,]?\s*\d{3}).){0,300}?\d{3}\s*[-–,]?\s*\d{3}",
+    r"National Stock Exchange of India\s*(?:Ltd|Limited)?(?:(?!\d{3}\s*[-,]?\s*\d{3}).){0,300}?\d{3}\s*[-,]?\s*\d{3}",
+    r"\bBSE Limited(?:(?!\d{3}\s*[-,]?\s*\d{3}).){0,300}?\d{3}\s*[-,]?\s*\d{3}",
     r"The Manager\s*\(?Listing\)?,?",
     r"NSE Trade Access Portal[^\n]*",
     r"\(An ISO-[^)]*Certified Company\)",
@@ -73,7 +73,7 @@ _BOILERPLATE_PATTERNS: list[str] = [
     r"\bContact Person\s*:?\s*[^\n]{0,80}",
     r"Please click here[^\n]*",
     r"Dear Sir\s*/?\s*Madam[,\.]?",
-    r"Company[’\']?s?\s*symbol\s*:?\s*\S+",
+    r"Company['\']?s?\s*symbol\s*:?\s*\S+",
     r"Scrip Code\s*:?\s*\S+",
     r"\bSub\s*:\s*",
 ]

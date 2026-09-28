@@ -84,7 +84,7 @@ def test_paired_comparison_hand_computed(tmp_path):
     # 10 items. 5 both correct, 1 both wrong, 3 only A correct, 1 only D correct.
     pairs = [(f"b{i}", "x", "x") for i in range(5)] + [(f"w{i}", "x", "y") for i in range(1)]
     # D gets the 3 "A only correct" items wrong, and fixes the 1 "both wrong" item.
-    arm_d = {f"a{i}": "y" for i in range(3)} | {"d0": "x"}
+    arm_d = {**{f"a{i}": "y" for i in range(3)}, "d0": "x"}
     pairs = pairs + [(f"a{i}", "x", "x") for i in range(3)] + [("d0", "x", "y")]
     rp, dp = _write(tmp_path, pairs, arm_d=arm_d)
     c = paired_comparison(rp, dp)

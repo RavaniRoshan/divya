@@ -22,7 +22,7 @@ from divya.data.filings import (
 REAL_HEADER = (
     "To, Date: September 24, 2026 The Manager (Listing), National Stock Exchange of India Ltd "
     "Exchange Plaza, 5th Floor, Plot No C/1, G Block, Bandra-Kurla Complex, Bandra (E), "
-    "Mumbai 400 051 Company’s symbol: MCL "
+    "Mumbai 400 051 Company's symbol: MCL "
     "Sub: Disclosure of pursuant to Regulation 7(2)(b) of the SEBI (Prohibition of Insider "
     "Trading) Regulations, 2015. "
     "Pursuant to Regulation 7(2)(b), we are enclosing herewith the disclosures received to the "
