@@ -4,23 +4,33 @@ Exactly one item is `IN_PROGRESS`. Everything else is a queue, not a promise.
 
 ---
 
-## `[~]` IN_PROGRESS — E-009: read the completed A/B/C/D result
+## `[x]` DONE — E-009: the A/B/C/D result, read and acted on
 
-**Why this is the only thing that matters right now.** Everything else in the project is
-either infrastructure for this measurement or already done. The thesis — that a recurrent
-System-2 ↔ System-1 loop beats a single-shot System-2 → System-1 tool call — is unresolved, and
-the run on 120 real NSE announcements is in flight.
+**Result: the thesis is rejected on this data.** A 0.558 · B 0.000 · C 0.558 · **D 0.508**.
+A and C are identical to the decimal on all four quality and calibration metrics; D is worse
+than C and abstains on 75.8% of events. H1 rejected, H2 rejected, H3 supported, H4 not supported.
+Recorded in `STATUS.md`, `DECISIONS.md` D-012/D-013, `UNIFICATION_EXPERIMENTS.md` E-009, and the
+README. The default runtime is now `system1_only`; Levels 3 and 4 are declined and recorded as
+declined. No re-run with a different seed, subset, or model was attempted.
 
-**Done when:**
-- `evals/results/real_eval.json` exists and every arm is populated.
-- H1/H2/H3/H4 each get an explicit verdict, including "the data does not distinguish them".
-- The result is written into `docs/loop/STATUS.md`, `docs/research/UNIFICATION_EXPERIMENTS.md`
-  (E-009), and the final report — **whatever it says**.
-- If D does not beat C, the product ships at Level 1 and Level 3/4 stay unbuilt, with that
-  stated as the outcome rather than as a failure to hide.
+---
 
-**Explicit anti-goal:** do not re-run with a different seed, a different subset, or a different
-model until it goes our way. One pre-registered run, reported as it came out.
+## `[~]` IN_PROGRESS — remove `other` from `event_type` and re-run E-009
+
+**Why this is next.** The result is not a flat failure — it is a *localised* one, and the
+localisation is diagnosable. Per class, arm A scores `credit_rating` F1 0.94 and
+`leadership_change` F1 0.88, but `capital_action` (n=13) and `regulatory_action` (n=17) score
+exactly **0.00**. The confusion matrix shows `other` acting as an attractor for uncertainty:
+`capital_action` goes to `other`/`fundraise` 13 of 13, `regulatory_action` to
+`other`/`capital_action` 16 of 17, and `other` itself has precision 0.29 while absorbing 27 of
+the misclassifications.
+
+A catch-all option in a typed-decision head does not stay a catch-all; it becomes where
+uncertainty goes. That is a protocol design defect, not a model defect, and it is fixable.
+
+**Done when:** `event_type` drops `other` (protocol v3), unresolvable filings route to an
+explicit `unresolved`/abstain path, and E-009 is re-run on the same 120 items with the same
+pre-registered strata — reported whatever it shows, including if it does not help.
 
 ---
 

@@ -167,7 +167,7 @@ baseline. The A/B/C/D comparison is in progress.
 
 ## OPEN QUESTIONS
 
-- **Q3 (the central one): is D > C?** The evaluation is running. Unanswered.
+- ~~Q3 (the central one): is D > C?~~ **Answered: no.** D 0.508 vs C 0.558, and A == C exactly.
 - Is Laya's miscalibration in the mid-confidence band fixable by a temperature refit on a
   Divya-specific dev set? Probably, and it is untested.
 - Does the loop *help* on the ambiguous stratum specifically? The stratified split will show.
@@ -175,5 +175,9 @@ baseline. The A/B/C/D comparison is in progress.
 
 ## NEXT HIGHEST-VALUE ACTION
 
-Read the completed A/B/C/D result and report it, whatever it says — including the specific case
-where the recurrent loop costs latency and tokens and does not return quality.
+**Remove `other` from the `event_type` option set and re-run E-009.** The confusion matrix shows
+`other` acting as an attractor for uncertainty: `capital_action` (n=13) and `regulatory_action`
+(n=17) both score F1 = 0.00 because their filings are absorbed by `other` (precision 0.29), and
+that option is implicated in 27 of the misclassifications. This is a protocol defect rather than
+a model defect, it is the single clearest experiment the evaluation produced, and it could
+change the headline numbers substantially.

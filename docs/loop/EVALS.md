@@ -126,7 +126,9 @@ Python 3.12.3, 2026-09-28.
 | 9 | Calibration, mid band (0.60–0.67) | 5 | 0.200 accuracy at 0.627 stated confidence | same |
 | 10 | Calibration, high band (0.93–1.00) | 7 | 1.000 accuracy at 0.995 stated confidence | same |
 | 11 | Checkpoint `choice:11+` temperature | — | **0.1006 — invalid, confidence uncalibrated** | `rl_agent_config.json` |
-| 12 | A/B/C/D on real NSE | 120 | see `evals/results/real_eval.json` | pending |
+| 12 | **A/B/C/D on real NSE** | 120 | **A 0.558 · B 0.000 · C 0.558 · D 0.508**; D abstains 75.8% | `evals/results/real_eval.json` |
+| 13 | D vs C, p95 latency | 120 | 40.4 s vs 19.0 s; arm A 4.7 s | same |
+| 14 | Per-class F1 (arm A) | 120 | credit_rating 0.94, leadership_change 0.88, m_and_a 0.67, other 0.43, **capital_action 0.00, regulatory_action 0.00** | same |
 
 **Interpretation constraints, binding on every report:**
 
