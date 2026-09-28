@@ -4,9 +4,10 @@ _Last updated: 2026-09-28, iteration 3._
 
 ## CURRENT OBJECTIVE
 
-The thesis is measured and **rejected on this data**. The remaining work is the highest-value
-experiment the result points at: the `other` option is acting as an attractor for uncertainty,
-and two classes score F1 = 0.00 because of it.
+The plan is complete. The thesis is measured and **rejected on this data**; that result has
+been significance-tested, the product has been built and shipped with the evidence-appropriate
+default, the red team has run and its findings are fixed, and the full-filing-text evaluation
+is in flight as the final experiment.
 
 ## WHAT CHANGED
 
@@ -19,7 +20,17 @@ and two classes score F1 = 0.00 because of it.
   unusable on this hardware, and batching does not work here.
 - **The product works end to end**: `divya doctor`, `divya fetch`, `divya decide` (with the full
   terminal view and a reconstructable JSON trace), `divya show`, `divya protocol`.
-- 84 tests, ruff clean, mypy clean.
+- **The terminal (P9).** Keyboard-first Textual TUI over a SQLite store: event stream, detail,
+  company list, "why" evidence chain, decision state, freshness, model versions. Verified
+  end to end on a live NSE filing.
+- **The red team (P10).** 43 adversarial cases across 7 classes, run against the real engine.
+  15 defects found, **all 15 fixed**, suite now 43/43 — including a prompt injection that
+  genuinely worked against Laya.
+- **Significance testing.** "H3 supported" is now a tested claim: McNemar p = 0.0312, paired
+  bootstrap 95% CI [-0.0917, -0.0167], because all 6 discordant pairs favour A.
+- **Full filing text (B-004).** PDF extraction gives 25.3× more text (17k → 431k chars on the
+  eval set). The whole evaluation had been running on 154-character summaries.
+- 378 tests, ruff clean, mypy clean.
 - Architecture spec (`docs/architecture/UNIFIED_MODEL.md`), README, Makefile, Dockerfile and
   compose written.
 

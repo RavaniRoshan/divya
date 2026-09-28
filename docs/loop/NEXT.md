@@ -15,7 +15,21 @@ declined. No re-run with a different seed, subset, or model was attempted.
 
 ---
 
-## `[~]` IN_PROGRESS — remove `other` from `event_type` and re-run E-009
+## `[x]` DONE — remove `other`? NO: the significance test says the loop's failure is narrower than that
+
+The `other`-attractor diagnosis is **confirmed and larger than first stated**: **three** classes
+at zero accuracy (`capital_action`, `fundraise`, `regulatory_action`), with **36** errors landing
+on `other` (not 27). But the attribution needed correcting too: the loop is not losing accuracy
+*because* it abstains on those. Paired per item, **A is right and D is wrong on 6 items, D is
+right and A is wrong on 0** — the loop never fixed an error and broke six correct ones, entirely
+on items System-1 alone got right. So `other` is a System-1 protocol defect, not a loop
+artefact, and it is the right next target.
+
+## `[~]` IN_PROGRESS — re-run E-009 on full filing text
+
+Every result so far was measured on one-line summaries. `evals/datasets/nse_announcements_filings_v1.jsonl`
+carries the real filings (107/120 upgraded, 25.3x more text). Running the same arms on the same
+labels with the real text is the experiment D-016 enabled.
 
 **Why this is next.** The result is not a flat failure — it is a *localised* one, and the
 localisation is diagnosable. Per class, arm A scores `credit_rating` F1 0.94 and

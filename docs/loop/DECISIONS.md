@@ -612,3 +612,84 @@ Re-decide explicitly.
 
 **FOLLOW-UP.** Re-run E-009 on the enriched dataset and report whether 0.558 and the three
 zero-F1 classes change. That is the experiment this enables.
+
+---
+
+## D-017 — 2026-09-28 — The terminal ships; the store is append-only and immutable
+
+**DECISION.** Build the P9 terminal as a Textual TUI over a SQLite store, and keep
+`terminal/view.py` as the separate audit path.
+
+**CONTEXT.** Phase 9 asked for an event stream, company state, event history, decision state,
+confidence, evidence, a "why" interface, freshness, model/version information and keyboard-first
+interaction. What existed covered decision state for a single run and none of the rest.
+
+**DESIGN.** `src/divya/data/store.py` persists events, runs, decisions and disagreements.
+**Decisions are append-only and immutable**: a protocol change produces a new row with a new
+version and both stay visible. Overwriting history would destroy the only thing that makes a
+calibration claim checkable. **Freshness is a query, never a stored flag** — a row written a week
+ago is stale now and no column can change that.
+
+`src/divya/terminal/app.py` gives every pane a reason to exist: the status bar always carries
+data age, the System-1 state and the model id, and `w` swaps the decision pane between raw
+System-1 output and the system's interpretation. The two must never be confusable, because that
+is this project's entire claim.
+
+**WHY A TUI AND NOT JUST THE EXISTING RENDER.** `view.py` renders one decision and produces a
+file you can diff and paste into an issue. That is the *audit* path and it is kept. A working
+terminal needs a working terminal. Both call the same `divya` modules, so there is no second
+implementation of the product logic to drift.
+
+**VERIFIED END TO END.** A live NSE filing (AIIL, "Appointment") selected in the stream, decided
+with the real engine in 11,093 ms, `event_type leadership_change` at P=0.99, four decisions
+persisted, raw and interpreted views both rendered, then read back from the store.
+
+**FOUR BUGS FOUND BY DRIVING IT RATHER THAN READING IT.** Duplicate widget ids; a `str`/`int`
+comparison in the freshness path that silently aborted every key handler; `str.join` given
+multiple arguments; and `asyncio.run()` nested inside Textual's own event loop. 20 headless
+tests now cover mounting, navigation clamping, filtering, the raw/interpreted toggle, freshness
+and simulation labelling, and the decide path.
+
+**REVERSIBILITY.** The store is a single SQLite file; deleting it loses only derived state, and
+re-fetching rebuilds it from the exchange.
+
+---
+
+## D-018 — 2026-09-28 — The red team is shipped as a test suite, not a report
+
+**DECISION.** `python -m divya.eval.redteam` is a runnable suite that exits non-zero on any
+failure, and `docs/loop/REDTOOM.md` is its written report.
+
+**EVIDENCE.** 43 cases across 7 classes, run against the real runtime and — for the injection
+class — the real Laya engine. **15 defects found. All 15 fixed. Suite now 43/43.**
+
+**THE ONE THAT MATTERED.** A prompt injection worked. 87 characters appended to a 220-character
+dividend filing flipped `event_type` from `earnings_result` (0.973) to `other` (0.652). There
+was no sanitisation layer at all.
+
+**WHAT WORKED AND WHAT DID NOT.** Defanging the injected JSON's *keys* did not stop it — a 421M
+encoder follows an instruction whether or not it is well-formed JSON. What worked was
+**redacting the instruction text itself**, plus stripping control markup and zero-width
+characters. This is not a solved problem and `sanitize.py` says so: a defence is only as good as
+the test that tries to break it, which is why the suite is committed and runnable rather than
+described.
+
+**THE OTHER 14, in one line each.** Contradictory observations were silently concatenated
+(`Contradiction` existed from day one and nothing called it). Duplicates multiplied what System-1
+read. A future timestamp and an unparseable timestamp both read as **fresh**. A raising System-1
+escaped the loop, breaking the totality guarantee `UNIFIED_MODEL.md` claims. `system2_timeout_s`
+was not the bound. The heuristic path never ran the ingestion canary. Lone surrogates crashed
+`Observation`.
+
+**THE TWO-DIGEST DECISION.** The state now carries `content_hash` over the **exact** bytes
+(provenance — a trace must prove what was actually decided on) and `dedup_key` over the
+whitespace-normalised form (cost — a feed that re-emits one filing with different wrapping is
+still one filing). One hash cannot honestly be both, and the red team asserted both properties.
+
+**FOUR TESTS ASSERTED THE OLD BROKEN BEHAVIOUR** and failed once fixed. All four are now
+regression tests for the fix. One of them carried its own instruction to *"update this
+deliberately rather than by accident"* when the fix landed.
+
+**STATED PLAINLY: this is not a security audit, and no claim is made that the system is secure.**
+It is a suite of 43 specific attacks, 7 of which ran against the real engine and one of which
+found a real hole. An adaptive adversary who reads `sanitize.py` will find a gap.

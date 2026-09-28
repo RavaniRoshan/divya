@@ -66,21 +66,24 @@ Full evidence in `research/REAL_DATA_SOURCES.md`.
 
 ---
 
-## B-004 — OPEN (non-blocking) — Filing PDFs are not parsed
+## B-004 — **RESOLVED** — Filing PDFs are now parsed
 
 | field | value |
 |---|---|
-| What is blocked | Evaluating on full filing text rather than one-line summaries |
-| Why | NSE's `attchmntText` is a summary, not the filing. In the September 2026 sample the median is **154 characters**; the full text is in the attached PDF, which Divya does not parse |
-| Tried | Measured the length distribution across 14,805 announcements to quantify the gap |
-| What unblocks it | A PDF text extractor plus a per-announcement fetch. Straightforward and unblocked |
-| Impact if never resolved | The current evaluation classifies short summaries. Accuracy on **full filing text is unknown and could differ substantially** — a summary often omits the figures a materiality judgement depends on |
+| What was blocked | Evaluating on full filing text rather than one-line summaries |
+| Why it was blocked | NSE's `attchmntText` is a summary; median **154 characters** across 14,805 announcements. The filing is in the attached PDF |
+| What landed | `src/divya/data/filings.py` + `divya filings --db ...` + `research/scripts/enrich_dataset_with_filings.py` |
+| Measured | **107 of 120** eval items upgraded; **25.3x** total expansion (17,015 → 431,266 chars) |
+| Remaining gap | 13 of 120 have no usable text layer — scanned images needing OCR. They fall back to the summary and say so |
 
-This is the single largest data improvement available and it is not blocked by anything external.
+**Impact on prior results: every number reported before this was measured on summaries.** A
+materiality judgement needs figures and summaries routinely omit them. The 0.558 figure is a
+number about one-line summaries. The re-evaluation on full filing text is in flight.
 
 ---
 
 ## B-005 — OPEN (non-blocking) — No published ground truth for materiality or direction
+
 
 | field | value |
 |---|---|
@@ -92,3 +95,33 @@ This is the single largest data improvement available and it is not blocked by a
 
 The synthetic dataset carries hand-authored labels for all four decisions, so the metrics code
 is exercised — but those numbers are about authored text and are reported as such.
+
+---
+
+## B-006 — OPEN, accepted risk — Prompt injection is mitigated, not solved
+
+| field | value |
+|---|---|
+| What is at risk | System-1 (Laya) reads untrusted document text with no instruction hierarchy |
+| What was found | An 87-character fake system turn flipped `event_type` from `earnings_result` (0.973) to `other` (0.652) against the **real engine** |
+| What landed | `src/divya/protocol/sanitize.py` strips control markup, defangs role-shaped JSON, removes zero-width/bidi characters, and redacts instruction-like text. Red-team suite now 43/43 including 8/8 injection cases against the real engine |
+| Why it stays open | Laya is a 421M encoder with no concept of an instruction hierarchy. It follows strong associative patterns. Stripping known shapes raises the cost of the attacks we have seen; it does not raise a wall |
+| What would actually close it | Constrained decoding over a grammar that cannot express instructions; or System-1 never reading raw text at all. Both are real work and neither is done |
+| Accepted because | The alternative — doing nothing — is the state this was found in |
+
+**This is not a security audit and no claim is made that the system is secure.** The committed
+suite is 43 specific attacks; 7 ran against the real engine and one found a real hole. An
+adaptive adversary who reads `sanitize.py` will find a gap. That is why the suite ships as a
+runnable test rather than a document.
+
+---
+
+## B-007 — OPEN, accepted — Scanned filings need OCR
+
+| field | value |
+|---|---|
+| What is at risk | 13 of 120 evaluation items had no text layer and fell back to the summary |
+| Why | Many Indian filings are scanned images. `pypdf` returns nothing for them |
+| What landed | Detected and reported as a **failure**, never as an empty document. An empty document would be decided on as "nothing to decide", which is the worst available outcome |
+| What would close it | OCR (Tesseract or a cloud OCR service) for the ~11% of filings that are scans |
+| Accepted because | The failure is visible and counted rather than silent. Deciding on a summary is worse than deciding on nothing visible |
