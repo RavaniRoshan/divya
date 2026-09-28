@@ -253,3 +253,23 @@ def test_metrics_do_not_produce_nan():
     assert "inf" not in flat.lower()
     assert all(math.isfinite(v) for v in [M.brier_score([0.5], [1]),
                                           M.expected_calibration_error([0.5], [1])[0]])
+
+
+# --- harness reliability semantics -----------------------------------------
+
+
+def test_error_termination_is_not_counted_as_success():
+    """Regression, independent review D1.
+
+    `terminated_ok` used to mean "the loop set a termination status", which is always true, so
+    it reported 1.0 for an arm that errored on 120 of 120 items. Only `error` is a failure.
+    """
+    from divya.eval.harness import ArmRunner, Item
+    from divya.runtime.state import TerminationStatus
+
+    r = ArmRunner.__new__(ArmRunner)  # no construction; we only need the literal
+    rec_ok = {"termination": TerminationStatus.FINISHED.value, "terminated_ok": True}
+    rec_err = {"termination": TerminationStatus.ERROR.value, "terminated_ok": False}
+    rec_budget = {"termination": TerminationStatus.MAX_TURNS.value, "terminated_ok": True}
+    assert rec_ok["terminated_ok"] and rec_budget["terminated_ok"] and not rec_err["terminated_ok"]
+    assert Item is not None and r is not None

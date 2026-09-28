@@ -31,7 +31,7 @@ and two classes score F1 = 0.00 because of it.
 | Arm | Accuracy | Macro-F1 | ECE | AURC | p95 | S1 calls | S2 calls | Prompt tok | Abstain |
 |---|---|---|---|---|---|---|---|---|---|
 | **A** S1 alone | **0.558** | 0.436 | 0.096 | **0.240** | **4.7 s** | 1.00 | 0.00 | 0 | 0.0% |
-| **B** S2 alone | 0.000 | 0.000 | 0.000 | 1.000 | 2.1 s | 0.00 | 2.00 | 2214 | 0.0% |
+| **B** S2 alone † | 0.000 | 0.000 | 0.000 | 1.000 | 2.1 s | 0.00 | 2.00 | 2214 | 0.0% |
 | **C** S2→S1 single shot | **0.558** | 0.436 | 0.096 | **0.240** | 19.0 s | 1.00 | 1.00 | 1079 | 0.0% |
 | **D** S2↔state↔S1 recurrent | **0.508** | 0.371 | 0.080 | 0.260 | **40.4 s** | 2.57 | 3.33 | 4941 | **75.8%** |
 
@@ -44,8 +44,19 @@ Per stratum: `clear` (n=50) A 0.500 / C 0.500 / **D 0.420** · `noisy` (n=64) A 
    reasoning layer contributes *zero* to the decision while costing 4.0× p95 latency and 1079
    prompt tokens per event.
 2. **D is worse than C** — 0.508 vs 0.558, worse on every stratum except `ambiguous` (tied), at
-   8.5× arm A's latency and 2.57 System-1 calls per event. It abstains on **75.8%** of events and
-   scores the abstained ones wrong, so the abstention costs accuracy rather than buying safety.
+   8.5× arm A's latency and 2.57 System-1 calls per event.
+
+   **Why it is worse (corrected after independent review).** An earlier draft of this file said
+   arm D "scores the abstained events wrong". That was false and the artifact disproves it:
+   accuracy is computed on the immutable raw System-1 answer, which is present even when the
+   loop abstained, and 38 of the 91 abstained items were scored **correct**. (If abstained items
+   were all scored wrong, accuracy could not exceed 29/120 = 0.242; the measured 0.508 is well
+   above that ceiling.)
+
+   The actual mechanism is sharper than the abstention story: paired per item, **A is right and
+   D is wrong on 6 items; D is right and A is wrong on 0.** The recurrent loop never fixed a
+   single error the single-shot path made, and it converted 6 correct answers into wrong ones by
+   re-asking System-1 and receiving different, worse answers. That is H3 in its most direct form.
 
 **Hypothesis verdicts:** H1 (loop helps) **REJECTED** · H2 (loop ≈ single-shot) **REJECTED** ·
 H3 (loop hurts) **SUPPORTED** · H4 (calibration win) **NOT SUPPORTED** — D's ECE is marginally
@@ -54,10 +65,13 @@ of abstaining more rather than of better-ordered confidence. H3 is also what the
 literature predicts (ATLAS 2510.15949).
 
 **The failure is not uniform, and that is the actionable part.** Per class: `credit_rating`
-F1 0.94, `leadership_change` F1 0.88, `m_and_a` 0.67, `other` 0.43 (precision **0.29**),
-`capital_action` **0.00** (n=13), `regulatory_action` **0.00** (n=17). The confusion matrix shows
-`other` acting as an attractor for uncertainty: `capital_action` goes to `other`/`fundraise`
-13/13, `regulatory_action` to `other`/`capital_action` 16/17.
+F1 0.94, `leadership_change` F1 0.88, `m_and_a` 0.67, `other` 0.43, `capital_action` **0.00**
+(n=13), `regulatory_action` **0.00** (n=17). The confusion matrix shows `other` acting as an
+attractor for uncertainty: in **arm A** `capital_action` goes to `other`/`fundraise` 13/13 and
+`regulatory_action` to `other`/`capital_action` 16/17.
+
+`other` precision is **0.294 in arms A and C** (TP 15, FP 36) and **0.342 in arm D** (TP 14,
+FP 27). Both are bad; they are different numbers and are not interchangeable.
 
 **DECISION (D-012, D-013):** the default runtime is **arm A, System-1 alone**, in a named
 `system1_only` mode. The recurrent loop is retained, tested and traced as the control that made
@@ -178,6 +192,6 @@ baseline. The A/B/C/D comparison is in progress.
 **Remove `other` from the `event_type` option set and re-run E-009.** The confusion matrix shows
 `other` acting as an attractor for uncertainty: `capital_action` (n=13) and `regulatory_action`
 (n=17) both score F1 = 0.00 because their filings are absorbed by `other` (precision 0.29), and
-that option is implicated in 27 of the misclassifications. This is a protocol defect rather than
+that option has precision 0.294 in arm A (TP 15, FP 36). This is a protocol defect rather than
 a model defect, it is the single clearest experiment the evaluation produced, and it could
 change the headline numbers substantially.

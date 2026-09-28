@@ -42,6 +42,7 @@ import argparse
 import asyncio
 import json
 import statistics
+import sys
 import time
 from collections import defaultdict
 from collections.abc import Callable
@@ -52,7 +53,7 @@ from typing import Any
 from divya.eval import metrics as M
 from divya.protocol.loader import load_protocol
 from divya.runtime.loop import DivyaRuntime, LoopConfig, LoopResult
-from divya.runtime.state import Observation
+from divya.runtime.state import Observation, TerminationStatus
 from divya.system1.laya_adapter import LayaSystem1, NullSystem1
 from divya.system2.provider import HeuristicProvider, System2Provider
 
@@ -264,7 +265,14 @@ class ArmRunner:
             "system2_calls": len(s2),
             "system2_failures": sum(1 for r in s2 if r.error),
             "termination": result.state.termination.value if result.state.termination else None,
-            "terminated_ok": result.state.termination is not None,
+            # "Terminated without an error", NOT "set a status at all". `error` is a failure
+            # and must not count as success -- the old check did, and reported 1.0 for an arm
+            # that errored on 120 of 120 items. `max_turns` is NOT a failure either: arm C is
+            # configured with max_turns=1, so exhausting its budget after its single System-1
+            # call is its designed path, and scoring that as a failure would be wrong in the
+            # other direction. See docs/loop/REVIEW.md D1.
+            "terminated_ok": result.state.termination is not None
+            and result.state.termination is not TerminationStatus.ERROR,
             "abstained": result.state.termination is not None
             and result.state.termination.value == "abstained",
             "prompt_tokens": sum(r.prompt_tokens for r in s2),
@@ -385,7 +393,14 @@ class ArmRunner:
             "system2_calls": len(s2),
             "system2_failures": sum(1 for r in s2 if r.error),
             "termination": result.state.termination.value if result.state.termination else None,
-            "terminated_ok": result.state.termination is not None,
+            # "Terminated without an error", NOT "set a status at all". `error` is a failure
+            # and must not count as success -- the old check did, and reported 1.0 for an arm
+            # that errored on 120 of 120 items. `max_turns` is NOT a failure either: arm C is
+            # configured with max_turns=1, so exhausting its budget after its single System-1
+            # call is its designed path, and scoring that as a failure would be wrong in the
+            # other direction. See docs/loop/REVIEW.md D1.
+            "terminated_ok": result.state.termination is not None
+            and result.state.termination is not TerminationStatus.ERROR,
             "abstained": result.state.termination is not None
             and result.state.termination.value == "abstained",
             "prompt_tokens": sum(r.prompt_tokens for r in s2),
@@ -660,6 +675,25 @@ async def run_eval(args: argparse.Namespace) -> dict[str, Any]:
     }
     for arm, recs in all_records.items():
         report["results"][arm] = aggregate(recs, items_by_id)
+        # An arm that answered nothing at all has not scored 0.000 -- it has failed, and the
+        # two are indistinguishable in the results table without this. Arm B in the real run
+        # errored on 120 of 120 and produced no output; reading its 0.000 as "System-2 alone
+        # is useless" would be reading a wiring failure as a model result.
+        answered = sum(
+            1
+            for r in recs
+            if ((r.get("answers") or {}).get("event_type") or {}).get("choice")
+        )
+        if recs and answered == 0:
+            print(
+                f"ERROR: arm {arm} produced NO event_type answer on any of {len(recs)} items. "
+                f"Terminations: "
+                f"{sorted(str(r.get('termination')) for r in recs)}. Its 0.000 accuracy is a "
+                f"FAILED ARM, not a measurement of the architecture.",
+                file=sys.stderr,
+                flush=True,
+            )
+            report["results"][arm]["ARM_FAILED_NO_OUTPUT"] = True
         r = report["results"][arm]
         print(
             f"[arm {arm}] acc={r['event_type']['accuracy']:.3f} "

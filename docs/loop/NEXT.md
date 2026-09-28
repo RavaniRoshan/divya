@@ -22,8 +22,8 @@ localisation is diagnosable. Per class, arm A scores `credit_rating` F1 0.94 and
 `leadership_change` F1 0.88, but `capital_action` (n=13) and `regulatory_action` (n=17) score
 exactly **0.00**. The confusion matrix shows `other` acting as an attractor for uncertainty:
 `capital_action` goes to `other`/`fundraise` 13 of 13, `regulatory_action` to
-`other`/`capital_action` 16 of 17, and `other` itself has precision 0.29 while absorbing 27 of
-the misclassifications.
+`other`/`capital_action` 16 of 17, and `other` itself has precision **0.294** in arm A (TP 15, FP 36) — it absorbs the
+uncertainty from classes the head cannot resolve.
 
 A catch-all option in a typed-decision head does not stay a catch-all; it becomes where
 uncertainty goes. That is a protocol design defect, not a model defect, and it is fixable.

@@ -148,14 +148,22 @@ laya 0.3.21. Full method, n, and baseline in [docs/loop/EVALS.md](docs/loop/EVAL
 | Arm | Accuracy | Macro-F1 | ECE | AURC | p95 | Prompt tok | Abstain |
 |---|---|---|---|---|---|---|---|
 | **A** System-1 alone | **0.558** | 0.436 | 0.096 | **0.240** | **4.7 s** | 0 | 0.0% |
-| **B** System-2 alone | 0.000 | 0.000 | 0.000 | 1.000 | 2.1 s | 2214 | 0.0% |
+| **B** System-2 alone † | 0.000 | 0.000 | 0.000 | 1.000 | 2.1 s | 2214 | 0.0% |
 | **C** System-2 → System-1 | **0.558** | 0.436 | 0.096 | **0.240** | 19.0 s | 1079 | 0.0% |
 | **D** recurrent loop | **0.508** | 0.371 | 0.080 | 0.260 | **40.4 s** | 4941 | **75.8%** |
 
+† **Arm B is a failed arm, not a result.** It produced no answer on any of 120 items (all
+terminated `error` with an empty answer set). Its 0.000 is a missing answer scored wrong, not a
+measurement of System-2's ability. The harness now fails loudly in this case.
+
 1. **A and C are identical to the decimal** on all four metrics. The reasoning layer contributes
    *zero* while costing 4× the latency.
-2. **D is worse than C** — 0.508 vs 0.558 — at 8.5× the latency, 2.57 System-1 calls per event,
-   and a 75.8% abstention rate that scores the abstained events wrong.
+2. **D is worse than C** — 0.508 vs 0.558 — at 8.5× the latency and 2.57 System-1 calls per
+   event. **Why:** paired per item, A is right and D is wrong on **6** items, and D is right and
+   A is wrong on **0**. The recurrent loop never fixed a single error and broke 6 correct
+   answers by re-asking System-1 and getting different, worse results. D abstains on 75.8% of
+   events, but abstention is *not* the cause of the loss — accuracy is scored on the immutable
+   raw System-1 answer, and 38 of the 91 abstained items were scored correct.
 
 H1 (loop helps) **rejected** · H2 (loop ≈ single-shot) **rejected** · H3 (loop hurts)
 **supported** · H4 (calibration win) **not supported**. H3 is also what the external literature

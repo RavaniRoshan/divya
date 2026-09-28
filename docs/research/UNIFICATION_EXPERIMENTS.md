@@ -254,9 +254,17 @@ process, same loaded checkpoint, paired. `qwen2.5-coder:3b`, min_confidence 0.55
 | Arm | Accuracy | Macro-F1 | ECE | AURC | p95 | S1 calls | S2 calls | Prompt tok | Abstain |
 |---|---|---|---|---|---|---|---|---|---|
 | **A** S1 alone | **0.558** | 0.436 | 0.096 | **0.240** | **4.7 s** | 1.00 | 0.00 | 0 | 0.0% |
-| **B** S2 alone | 0.000 | 0.000 | 0.000 | 1.000 | 2.1 s | 0.00 | 2.00 | 2214 | 0.0% |
+| **B** S2 alone † | 0.000 | 0.000 | 0.000 | 1.000 | 2.1 s | 0.00 | 2.00 | 2214 | 0.0% |
 | **C** S2→S1 single shot | **0.558** | 0.436 | 0.096 | **0.240** | 19.0 s | 1.00 | 1.00 | 1079 | 0.0% |
 | **D** S2↔state↔S1 recurrent | **0.508** | 0.371 | 0.080 | 0.260 | **40.4 s** | 2.57 | 3.33 | 4941 | **75.8%** |
+
+† **Arm B is a failed arm, not a result.** It produced no `event_type` answer on any of 120
+items — every item terminated `error` with an empty answer set. Its 0.000 is a missing answer
+scored wrong, its ECE 0.000 is the degenerate zero-vs-zero case, and its AURC 1.000 is the
+constant-confidence case. **None of the three is a measurement of System-2's ability.** The
+conclusion is that the System-2-only path emitted nothing parseable in this configuration. The
+harness now prints `ERROR: arm B produced NO event_type answer` and flags `ARM_FAILED_NO_OUTPUT`,
+and `terminated_ok_rate` correctly reads 0.000 for arm B where it previously read 1.000.
 
 Per stratum (accuracy):
 
@@ -275,8 +283,18 @@ the reasoning model is pure overhead.
 
 **2. D is worse than C** — accuracy 0.508 vs 0.558 (−0.050), worse on every stratum except
 `ambiguous` where it ties, at **8.5× arm A's latency** and 2.57 System-1 calls per event instead
-of 1.00. It abstains on **75.8%** of events, and when it abstains it scores that event wrong, so
-the abstention is costing accuracy rather than buying safety.
+of 1.00.
+
+D abstains on **75.8%** of events, but *abstention is not the mechanism*. Accuracy is scored on
+the immutable raw System-1 answer, which is present even when the loop abstained; 38 of the 91
+abstained items were scored **correct**, and 20 abstained items had no raw answer at all. If
+abstained items were all scored wrong, accuracy could not exceed 29/120 = 0.242, and the
+measured 0.508 is well above that ceiling.
+
+**The actual mechanism, paired per item: A is right and D is wrong on 6 items; D is right and A
+is wrong on 0.** The recurrent loop never corrected a single error the single-shot path made,
+and it converted 6 correct answers into wrong ones by re-asking System-1 and receiving different,
+worse answers. Net −6. This is H3 in its most direct form.
 
 ### Hypothesis verdicts
 
@@ -300,7 +318,7 @@ The system is **bimodal**, and that matters more than the headline number:
 | credit_rating | 8 | 0.89 | 1.00 | **0.94** |
 | leadership_change | 43 | 1.00 | 0.79 | **0.88** |
 | m_and_a | 14 | 1.00 | 0.50 | 0.67 |
-| other | 18 | **0.29** | 0.83 | 0.43 |
+| other | 18 | **0.294** | 0.83 | 0.43 |
 | capital_action | 13 | 0.00 | 0.00 | **0.00** |
 | regulatory_action | 17 | 0.00 | 0.00 | **0.00** |
 
@@ -310,7 +328,8 @@ for "I cannot tell"**:
 - `capital_action` (n=13) → `other` 8, `fundraise` 5. **Never predicted correctly once.**
 - `regulatory_action` (n=17) → `other` 13, `capital_action` 3, `board_meeting` 1. **Never correct.**
 
-`other` has precision 0.29 while absorbing 27 of the misclassifications. A catch-all option in a
+`other` has precision 0.294 in arms A and C (TP 15, FP 36) and 0.342 in arm D (TP 14, FP 27);
+both numbers are stated per arm because they are not the same. A catch-all option in a
 typed-decision head does not stay a catch-all; it becomes where uncertainty goes. This is a
 protocol design defect, not a model defect, and it is fixable: **remove `other` from the option
 set and let unresolvable filings go to `unresolved` or abstain.** The clearest single experiment
