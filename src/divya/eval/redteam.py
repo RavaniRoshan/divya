@@ -824,10 +824,58 @@ def malformed_input(engine: Engine) -> list[Case]:
 
         return check
 
+    def raising_system1() -> list[str]:
+        """A System-1 that raises rather than returning a record must not take the run down.
+
+        The adapter's contract is that every failure becomes a `System1Record` with `error` set,
+        so the loop can retry and then terminate `ERROR`. That contract is nowhere stated as an
+        interface bound -- `System1` in `runtime/loop.py` is a bare Protocol with no documented
+        raise policy -- and nothing enforces it. An adapter that raises on a hostile input
+        escapes `asyncio.wait_for` in the loop path and the whole run dies with a traceback
+        instead of a termination status, which is the one thing this runtime promises never to
+        do.
+        """
+        s1 = _RaisingSystem1()
+        p = probe([CLEAN_FILING], s1, config=LoopConfig(system1_only=False, max_turns=2))
+        if not p.ok:
+            return [
+                f"the run raised instead of terminating: {p.error}. `system1_only` mode "
+                f"contains this; the recurrent loop does not, because only TimeoutError and "
+                f"OSError are caught around the System-1 call."
+            ]
+        if p.termination is None:
+            return ["no TerminationStatus was set after a raising System-1"]
+        return []
+
     return [
         Case(name=name, check=make(text), notes=f"{desc}; {len(text)} chars")
         for name, text, desc in MALFORMED
+    ] + [
+        Case(
+            name="system1_raising_on_degenerate_input",
+            check=raising_system1,
+            notes="a System-1 adapter that raises instead of returning an error record",
+        )
     ]
+
+
+class _RaisingSystem1:
+    """A System-1 that breaks the adapter's unwritten raise policy."""
+
+    def is_available(self) -> bool:
+        return True
+
+    def answer(
+        self,
+        state_text: str,
+        spec: DecisionSpec,
+        *,
+        only: list[str] | None = None,
+        turn_index: int = 0,
+        protocol_version: str = "",
+        timeout_note: str = "",
+    ) -> System1Record:
+        raise RuntimeError("engine raised instead of returning a record")
 
 
 # ---------------------------------------------------------------------------

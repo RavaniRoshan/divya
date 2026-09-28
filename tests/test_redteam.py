@@ -18,8 +18,8 @@ The real-engine path is exercised by `python -m divya.eval.redteam`, not here.
 
 from __future__ import annotations
 
+import ast
 import json
-import sys
 from pathlib import Path
 
 import pytest
@@ -27,7 +27,6 @@ import pytest
 from divya.eval import redteam as RT
 from divya.eval.redteam import (
     CLASSES,
-    AdversarialStubSystem1 as StubSystem1,  # re-exported for the rest of the suite
     CLEAN_FILING,
     CLEAN_FILING_2,
     CONTRADICTION_PAIRS,
@@ -40,6 +39,9 @@ from divya.eval.redteam import (
     render_table,
     run_suite,
     stub_engine,
+)
+from divya.eval.redteam import (
+    AdversarialStubSystem1 as StubSystem1,  # re-exported for the rest of the suite
 )
 
 ENGINE = stub_engine()
@@ -125,17 +127,32 @@ def test_control_filings_classify_as_themselves_under_the_stub():
 
 
 def test_probe_reports_a_raise_instead_of_propagating_it():
+    """A System-1 that raises must surface as a failed probe, never as a silent pass.
+
+    In `system1_only` mode the runtime catches it and terminates `error`, which is the
+    documented degradation path; in the loop path it escapes, which is the defect the
+    `malformed_input/system1_raising_on_degenerate_input` red-team case pins.
+    """
     class Exploding:
         def is_available(self) -> bool:
             return True
 
-        def answer(self, *a, **k):  # noqa: ANN002, ANN003
+        def answer(self, state_text, spec, *, only=None, turn_index=0, protocol_version="", timeout_note=""):
             raise RuntimeError("engine exploded")
 
     p = RT.probe(["x"], Exploding())
-    assert not p.ok
-    assert "engine exploded" in p.error
-    assert p.event_type is None and p.termination is None
+    assert p.ok
+    assert p.termination == "error"
+    assert p.event_type is None
+    assert "exploded" in p.state.termination_reason
+    assert p.state.system1_records == [], "a raising engine must not leave a half-written record"
+
+    loop_path = RT.probe(
+        ["x"], Exploding(),
+        config=RT.LoopConfig(system1_only=False, max_turns=2),
+    )
+    assert not loop_path.ok
+    assert "engine exploded" in loop_path.error
 
 
 def test_probe_captures_a_raising_observation_construct():
@@ -149,7 +166,7 @@ def test_probe_captures_a_raising_observation_construct():
 
 
 def test_a_failing_case_is_reported_and_drives_the_exit_code(tmp_path: Path):
-    def builder(engine):  # noqa: ANN001, ANN202
+    def builder(engine):
         return [RT.Case(name="always_fails", check=lambda: ["this system is broken"])]
 
     saved = dict(CLASSES)
@@ -278,7 +295,7 @@ def test_stub_is_not_the_production_path():
     assert NullSystem1().is_available() is False
 
 
-def _spec():  # noqa: ANN202
+def _spec():
     from divya.protocol.loader import load_protocol
 
     return load_protocol().by_name("event_triage")
@@ -318,15 +335,17 @@ def test_module_is_runnable_as_a_script(tmp_path: Path):
 def test_redteam_module_never_imports_laya_directly():
     """The suite must import on a box with no torch, like every other non-System-1 module.
 
-    `LayaSystem1` is used, which is the sanctioned boundary; `import laya` here would pull torch
-    into the eval layer and break the property the whole System-1 split exists to protect.
+    `LayaSystem1` is used, which is the sanctioned boundary; an `import laya` here would pull
+    torch into the eval layer and break the property the System-1 split exists to protect.
     """
-    src = Path(RT.__file__).read_text(encoding="utf-8")
-    assert "import laya" not in src.replace("LayaSystem1", "").replace(
-        "LayaSystem1()", ""
-    ).replace("LayaSystem1,", "").replace("LayaSystem1)", ""), (
-        "the red-team module must reach the engine only through divya.system1.laya_adapter"
+    tree = ast.parse(Path(RT.__file__).read_text(encoding="utf-8"))
+    imported: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.update(a.name for a in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported.add(node.module)
+    assert not any(m == "laya" or m.startswith("laya.") for m in imported), (
+        f"redteam imports laya directly: {sorted(imported)}"
     )
-    assert "from laya" not in src
-    assert RT.LayaSystem1.__module__ == "divya.system1.laya_adapter"
-    assert "laya" not in sys.modules or True  # presence depends on the box, not on this module
+    assert "divya.system1.laya_adapter" in imported

@@ -29,8 +29,8 @@ UI is verified rather than assumed.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any, ClassVar
 
 from textual.app import App, ComposeResult

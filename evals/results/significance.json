@@ -1,0 +1,140 @@
+{
+  "comparison": {
+    "arm_a": "A",
+    "arm_b": "D",
+    "n": 120,
+    "acc_a": 0.5583,
+    "acc_b": 0.5083,
+    "delta": -0.05,
+    "both_correct": 61,
+    "both_wrong": 53,
+    "a_only_correct": 6,
+    "b_only_correct": 0,
+    "discordant_pairs": 6
+  },
+  "mcnemar_exact": {
+    "p_value": 0.0312,
+    "n_discordant": 6,
+    "a_only": 6,
+    "b_only": 0,
+    "note": "exact two-sided McNemar. With very few discordant pairs this test has almost no power: a non-significant result means the experiment could not resolve the difference, not that no difference exists."
+  },
+  "paired_bootstrap": {
+    "iterations": 10000,
+    "seed": 20260928,
+    "delta_mean": -0.0499,
+    "ci95": [
+      -0.0917,
+      -0.0167
+    ],
+    "p_delta_worse": 0.9984,
+    "p_delta_better": 0.0,
+    "excludes_zero": true,
+    "note": "95% CI on the paired accuracy difference (arm_b - arm_a). If the interval spans zero, the arms are not distinguishable at this sample size."
+  },
+  "agreement_arm_a": {
+    "leadership_change": {
+      "n": 43,
+      "correct": 34,
+      "accuracy": 0.7907,
+      "predicted_as_other": 5,
+      "distribution": {
+        "leadership_change": 34,
+        "other": 5,
+        "auditor_change": 2,
+        "credit_rating": 1,
+        "earnings_result": 1
+      }
+    },
+    "regulatory_action": {
+      "n": 17,
+      "correct": 0,
+      "accuracy": 0.0,
+      "predicted_as_other": 13,
+      "distribution": {
+        "other": 13,
+        "capital_action": 3,
+        "board_meeting": 1
+      }
+    },
+    "capital_action": {
+      "n": 13,
+      "correct": 0,
+      "accuracy": 0.0,
+      "predicted_as_other": 8,
+      "distribution": {
+        "other": 8,
+        "fundraise": 5
+      }
+    },
+    "auditor_change": {
+      "n": 2,
+      "correct": 2,
+      "accuracy": 1.0,
+      "predicted_as_other": 0,
+      "distribution": {
+        "auditor_change": 2
+      }
+    },
+    "other": {
+      "n": 18,
+      "correct": 15,
+      "accuracy": 0.8333,
+      "predicted_as_other": 15,
+      "distribution": {
+        "other": 15,
+        "capital_action": 1,
+        "board_meeting": 1,
+        "regulatory_action": 1
+      }
+    },
+    "m_and_a": {
+      "n": 14,
+      "correct": 7,
+      "accuracy": 0.5,
+      "predicted_as_other": 6,
+      "distribution": {
+        "m_and_a": 7,
+        "other": 6,
+        "capital_action": 1
+      }
+    },
+    "credit_rating": {
+      "n": 8,
+      "correct": 8,
+      "accuracy": 1.0,
+      "predicted_as_other": 0,
+      "distribution": {
+        "credit_rating": 8
+      }
+    },
+    "earnings_result": {
+      "n": 4,
+      "correct": 1,
+      "accuracy": 0.25,
+      "predicted_as_other": 3,
+      "distribution": {
+        "other": 3,
+        "earnings_result": 1
+      }
+    },
+    "fundraise": {
+      "n": 1,
+      "correct": 0,
+      "accuracy": 0.0,
+      "predicted_as_other": 1,
+      "distribution": {
+        "other": 1
+      }
+    },
+    "_summary": {
+      "arm": "A",
+      "classes_with_zero_accuracy": [
+        "capital_action",
+        "fundraise",
+        "regulatory_action"
+      ],
+      "other_absorbs": 36
+    }
+  }
+}
