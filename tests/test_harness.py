@@ -263,7 +263,8 @@ def test_aggregate_scores_the_ordinal_and_binary_decisions_when_labelled():
 
 
 def test_aggregate_stratum_splits_without_doubling_counting():
-    records = HAND_RECORDS + [
+    records = [
+        *HAND_RECORDS,
         _rec("r5", "capital_action", 0.95, "ambiguous"),
         _rec("r6", "other", 0.10, "ambiguous", answers={
             "event_type": {"type": "choice", "choice": "other",

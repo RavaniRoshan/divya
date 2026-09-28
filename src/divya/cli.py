@@ -281,6 +281,36 @@ def cmd_index(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_filings(args: argparse.Namespace) -> int:
+    """Replace summary text with the full filing, where a text layer exists.
+
+    Stored decisions are deliberately NOT recomputed. Silently changing the text a decision was
+    made on would make that decision a lie; re-decide explicitly instead.
+    """
+    from divya.data.filings import enrich_store_with_filings
+    from divya.data.store import Store
+
+    store = Store(args.db) if args.db else Store()
+    summary = enrich_store_with_filings(
+        store, limit=args.limit, measurable_only=not args.all
+    )
+    print(f"filings: attempted {summary['attempted']}, upgraded {summary['upgraded']} "
+          f"to full text, {summary['fell_back_to_summary']} kept the summary")
+    if summary["upgraded"]:
+        print(f"  expansion       {summary['summary_chars_total']} -> "
+              f"{summary['text_chars_total']} chars "
+              f"({summary['expansion']:.1f}x) across the upgraded set")
+    print("  reason: many Indian filings are scanned images with no text layer; those need OCR "
+          "and fall back rather than being decided on as empty documents")
+    for ex in summary["examples"][: args.show]:
+        print(f"\n  {ex['symbol']}  {ex['nse_desc'][:44]}")
+        print(f"    {ex['summary_chars']} -> {ex['chars']} chars "
+              f"({ex['expansion']:.1f}x, {ex.get('pages')} pages, "
+              f"{ex['boilerplate_removed']} boilerplate chars removed) [{ex['source']}]")
+        print(f"    {ex['excerpt'][:280]}")
+    return 0
+
+
 def cmd_status(args: argparse.Namespace) -> int:
     from divya.data.store import Store
 
@@ -511,6 +541,16 @@ def build_parser() -> argparse.ArgumentParser:
     ix.add_argument("--limit", type=int, default=5000)
     ix.add_argument("--db", default=None)
     ix.set_defaults(func=cmd_index)
+
+    fl = sub.add_parser(
+        "filings",
+        help="upgrade stored events from announcement summaries to full filing text (PDF)",
+    )
+    fl.add_argument("--db", default=None)
+    fl.add_argument("--limit", type=int, default=50)
+    fl.add_argument("--all", action="store_true", help="include unmeasurable classes too")
+    fl.add_argument("--show", type=int, default=1, help="print N extracted examples")
+    fl.set_defaults(func=cmd_filings)
 
     st = sub.add_parser("status", help="store statistics, freshness, and versions")
     st.add_argument("--db", default=None)

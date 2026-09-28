@@ -43,7 +43,7 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from divya.data.sources import staleness_warning
 from divya.protocol.loader import ProtocolError, load_protocol
@@ -303,7 +303,8 @@ class AdversarialStubSystem1:
         names = sorted(questions)
         digest = hashlib.sha256(state_text.encode("utf-8", "surrogatepass")).hexdigest()[:16]
         self.calls.append({"spec": spec.name, "decisions": names, "chars": len(state_text)})
-        answers = {n: self._answer_one(n, questions[n], state_text) for n in names}
+        rendered = {n: cast("dict[str, Any]", q) for n, q in questions.items()}
+        answers = {n: self._answer_one(n, rendered[n], state_text) for n in names}
         return System1Record(
             turn_index=turn_index,
             decision_names=names,
@@ -683,7 +684,12 @@ def _execute(engine: Engine, case: Case) -> CaseResult:
     )
 
 
-def _run_class(name: str, engine: Engine, builder: Callable[[], list[Case]], note: str = "") -> ClassResult:
+def _run_class(
+    name: str,
+    engine: Engine,
+    builder: Callable[[Engine], list[Case]],
+    note: str = "",
+) -> ClassResult:
     result = ClassResult(name=name, engine=engine.describe(), cases=[], class_note=note)
     for case in builder(engine):
         cr = _execute(engine, case)
