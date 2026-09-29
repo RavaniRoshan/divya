@@ -22,7 +22,7 @@ from divya.eval.significance import (
 )
 
 RESULT = Path("evals/results/real_eval.json")
-DATASET = Path("evals/datasets/nse_announcements_v1.jsonl")
+DATASET = Path("evals/datasets/nse_v5_eval_set.jsonl")
 
 
 def _write(
@@ -170,23 +170,76 @@ def test_real_artifact_comparison_matches_the_published_numbers():
     """The committed result must still say what the docs say it says.
 
     If a re-run changes the numbers, this fails and the documentation has to be updated rather
-    than quietly going stale.
+    than quietly going stale. The expected values are the v5-taxonomy run; the v2 figures and
+    the correction that produced them are in ARCHIVED_real_eval_v2_taxonomy.json and D-026.
     """
     c = paired_comparison(RESULT, DATASET)
     assert c.n == 120
-    assert c.acc_a == pytest.approx(0.5583, abs=1e-3)
-    assert c.acc_b == pytest.approx(0.5083, abs=1e-3)
-    assert c.a_only_correct == 6
-    assert c.b_only_correct == 0
+    assert c.acc_a == pytest.approx(c.acc_b, abs=1e-9), (
+        "under v5 the loop and System-1 alone tie exactly; see D-026"
+    )
 
 
-def test_real_result_is_significant_and_one_sided():
-    m = mcnemar_exact(6, 0)
-    assert m["p_value"] < 0.05
+def test_the_archived_v2_artifact_is_still_reproducible():
+    """The pre-merge run is kept, and its own numbers must still recompute.
+
+    Archiving a result is only honest if it stays checkable. This pins the v2 figures and the
+    12.5-point gap that the taxonomy change produced, so the correction cannot quietly become
+    the new unexamined number.
+    """
+    import json
+    from pathlib import Path as _P
+
+    archived = _P("evals/results/ARCHIVED_real_eval_v2_taxonomy.json")
+    if not archived.exists():
+        pytest.skip("pre-merge artifact not present")
+    data = json.loads(archived.read_text(encoding="utf-8"))
+    accs = {a: r["event_type"]["accuracy"] for a, r in data["results"].items()}
+    assert accs["A"] == pytest.approx(0.5583, abs=1e-3)
+    assert accs["C"] == pytest.approx(0.5583, abs=1e-3)
+    assert accs["D"] == pytest.approx(0.5083, abs=1e-3)
+    # The gap the correction is about, stated as a fact rather than a claim.
+    assert accs["A"] - 0.4333 > 0.12
+
+
+def test_under_v5_the_loop_is_indistinguishable_from_system1_alone():
+    """The honest current state, and it is a NULL result.
+
+    Under the v2 taxonomy the loop was measurably worse (McNemar p=0.0312, six discordant
+    pairs all favouring arm A, bootstrap CI excluding zero). Under v5 the two arms tie exactly.
+    That is NOT evidence the loop became good -- D-026 shows the merge removed the distinctions
+    the loop was breaking them across. It means the loop is currently doing nothing either way,
+    and a null result is the correct thing for this test to assert.
+    """
     c = paired_comparison(RESULT, DATASET)
+    assert c.discordant == 0, f"arms still disagree on {c.discordant} items"
+    m = mcnemar_exact(c.a_only_correct, c.b_only_correct)
+    assert m["p_value"] == 1.0
     b = paired_bootstrap(c, RESULT, DATASET, iterations=2000)
-    assert b["excludes_zero"] is True
-    assert b["ci95"][1] < 0
+    assert b["ci95"][0] == pytest.approx(0.0)
+    assert b["ci95"][1] == pytest.approx(0.0)
+    assert b["excludes_zero"] is False
+
+
+def test_the_archived_v2_loop_result_is_still_significant_and_one_sided():
+    """The v2 finding must stay checkable, including after it is superseded.
+
+    A result that was retired because a later change removed the harm is exactly the kind of
+    result that quietly gets rewritten as 'the loop was fine'. It was not: it was worse, with
+    p=0.0312, and that is archived rather than deleted.
+    """
+    import json
+    from pathlib import Path as _P
+
+    archived = _P("evals/results/ARCHIVED_real_eval_v2_taxonomy.json")
+    if not archived.exists():
+        pytest.skip("pre-merge artifact not present")
+    data = json.loads(archived.read_text(encoding="utf-8"))
+    assert data["results"]["A"]["event_type"]["accuracy"] > data["results"]["D"][
+        "event_type"
+    ]["accuracy"]
+    assert data["results"]["D"]["reliability"]["abstention_rate"] == 0.7583
+    assert mcnemar_exact(6, 0)["p_value"] < 0.05
 
 
 def test_report_states_a_conclusion():

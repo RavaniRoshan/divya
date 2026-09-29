@@ -402,19 +402,24 @@ def test_the_headline_eval_number_is_pinned_to_the_artifact():
     """Arm A on the real NSE sample is the number the README quotes. Pin it.
 
     If the harness, the protocol or the dataset changes, this fails loudly rather than the README
-    quietly becoming wrong.
+    quietly becoming wrong. The pinned values are the v5-taxonomy run; D-026 records why the
+    earlier v2 figure of 0.5583 was partly a class-granularity artifact, and the archived
+    artifact keeps that measurement checkable rather than deleted.
     """
     report = json.loads(EVAL_ARTIFACT.read_text(encoding="utf-8"))
     assert report["config"]["system1_available"] is True
     assert report["config"]["provider"] == "ollama"
     a = report["results"]["A"]
-    assert a["event_type"]["accuracy"] == 0.5583
-    assert a["event_type"]["macro_f1"] == 0.4362
-    assert a["calibration"]["ece_event_type"] == 0.0956
-    assert a["calibration"]["aurc"] == 0.2399
-    # The thesis under test: C is the control, D is the claim, and D is not better.
+    assert a["event_type"]["accuracy"] == 0.4333
+    assert a["event_type"]["macro_f1"] == 0.4337
+    assert a["calibration"]["aurc"] == 0.3796
+    # The thesis under test. Under v5 the three arms CONVERGE: C ties A exactly and D ties too.
+    # That is not the loop becoming good -- D-026 shows the merge removed the distinctions the
+    # loop was breaking them across, and the archived v2 artifact holds the finding that the
+    # loop was measurably worse (p=0.0312) before the merge.
     assert report["results"]["C"]["event_type"]["accuracy"] == a["event_type"]["accuracy"]
-    assert report["results"]["D"]["event_type"]["accuracy"] < a["event_type"]["accuracy"]
-    assert report["results"]["B"]["event_type"]["accuracy"] == 0.0
+    assert report["results"]["D"]["event_type"]["accuracy"] == a["event_type"]["accuracy"]
     assert report["dataset"]["synthetic_text"] is False
+    # Arm B was not re-run under v5; it is a System-2-only path failure, not a taxonomy one.
+    assert "B" not in report["results"]
     assert report["dataset"]["n_items"] == 120

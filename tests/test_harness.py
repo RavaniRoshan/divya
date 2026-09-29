@@ -32,7 +32,7 @@ from divya.system1.laya_adapter import NullSystem1
 from test_redteam import StubSystem1
 
 REPO = Path(__file__).resolve().parents[1]
-DATASET = REPO / "evals" / "datasets" / "nse_announcements_v1.jsonl"
+DATASET = REPO / "evals" / "datasets" / "nse_v5_eval_set.jsonl"
 EVAL_ARTIFACT = REPO / "evals" / "results" / "real_eval.json"
 PROTOCOL = load_protocol()
 
@@ -546,6 +546,13 @@ def test_an_empty_dataset_stops_the_run(tmp_path):
 
 
 def test_the_shipped_eval_artifact_is_consistent_with_its_own_records():
+    """Self-consistency only.
+
+    The shipped `real_eval.json` is a v2-taxonomy run; the current protocol is v5, so its
+    aggregate CANNOT be compared against the current dataset labels. What it can be checked
+    for is internal consistency, which is what this asserts. The cross-version comparison
+    lives in test_significance and is recomputed rather than copied.
+    """
     """Recompute arm A's accuracy from the per-item records in the shipped artifact.
 
     The reported number and the records it came from must agree; a report that disagrees with
@@ -564,7 +571,12 @@ def test_the_shipped_eval_artifact_is_consistent_with_its_own_records():
 
 
 def test_the_shipped_arm_b_produced_no_answers_at_all():
-    report = json.loads(EVAL_ARTIFACT.read_text(encoding="utf-8"))
+    """v2 only. Arm B was not re-run under v5 and is unchanged by a taxonomy edit: it
+    produces no typed answer either way, because the failure was the System-2-only path
+    emitting nothing, not the label set. The v2 evidence lives in the archived artifact."""
+    report = json.loads(
+        Path("evals/results/ARCHIVED_real_eval_v2_taxonomy.json").read_text(encoding="utf-8")
+    )
     recs = report["per_item"]["B"]
     assert all((r.get("answers") or {}).get("event_type") is None for r in recs)
     assert report["results"]["B"]["event_type"]["accuracy"] == 0.0
@@ -574,11 +586,19 @@ def test_the_shipped_arm_b_produced_no_answers_at_all():
 
 
 def test_the_shipped_artifact_d_abstains_much_more_than_it_helps():
+    """v5 numbers. Under v2 the loop abstained on 75.8% and scored 0.508 against A's 0.558;
+    under v5 the three arms converge on 0.433 and the loop abstains on 34.2%. It is no longer
+    worse -- and that is NOT a vindication of the loop. The merge removed the distinctions the
+    loop was breaking them across. See DECISIONS D-026."""
     report = json.loads(EVAL_ARTIFACT.read_text(encoding="utf-8"))
-    assert report["results"]["D"]["reliability"]["abstention_rate"] == 0.7583
-    assert report["results"]["D"]["reliability"]["max_turns_hit_rate"] == 0.2417
+    assert report["results"]["D"]["reliability"]["abstention_rate"] == 0.3417
+    assert report["results"]["D"]["reliability"]["max_turns_hit_rate"] == 0.6583
     assert report["results"]["D"]["reliability"]["terminated_ok_rate"] == 1.0
     assert report["results"]["A"]["reliability"]["abstention_rate"] == 0.0
+    # And the convergence D-026 describes: under v5 the loop is no longer worse than A.
+    assert report["results"]["D"]["event_type"]["accuracy"] == pytest.approx(
+        report["results"]["A"]["event_type"]["accuracy"], abs=1e-9
+    )
 
 
 # --- helpers ---------------------------------------------------------------
