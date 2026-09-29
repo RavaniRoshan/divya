@@ -40,6 +40,16 @@ Artifact: `evals/results/real_eval.json`.
 | **C** System-2 → System-1 | **0.558** | 0.436 | 0.096 | **0.240** | 19.0 s | 1.00 | 1079 | 0.0% |
 | **D** recurrent loop | **0.508** | 0.371 | 0.080 | 0.260 | **40.4 s** | 2.57 | 4941 | **75.8%** |
 
+> **⚠ CORRECTION (D-026, measured after the table above).** These are **v2-taxonomy** numbers:
+> nine classes. Under **v5** — the same three vocabulary-sharing classes merged into one
+> `capital_event`, because the engine was measured unable to separate them — **the same
+> predictions score 0.433, not 0.558**, on identical data.
+>
+> **Macro-F1 is essentially unchanged (0.436 → 0.434).** Accuracy fell 12.5 points purely
+> because a finer taxonomy gives the engine more chances to be accidentally right. **The 0.558
+> was partly a class-granularity artifact and the honest number is 0.433.** v5 is the shipped
+> default despite scoring lower, because it does not assert distinctions the engine cannot make.
+
 † **arm B is a failed arm** — 0 of 120 items produced any answer. Its 0.000 is a missing answer
 scored wrong, not a measurement of System-2's ability.
 

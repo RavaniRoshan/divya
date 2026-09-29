@@ -128,6 +128,7 @@ Python 3.12.3, 2026-09-28.
 | 11 | Checkpoint `choice:11+` temperature | — | **0.1006 — invalid, confidence uncalibrated** | `rl_agent_config.json` |
 | 12 | **A/B/C/D on real NSE (summaries)** | 120 | **A 0.558 · B 0.000 · C 0.558 · D 0.508**; D abstains 75.8% | `evals/results/real_eval.json` |
 | 12b | **A/B/C/D on real NSE (FULL FILING TEXT, 25.3x more)** | 120 | **A 0.475 · B 0.000 · C 0.475 · D 0.142** | `evals/results/real_eval_filings.json` |
+| 12c | **A/C/D on real NSE, v5 taxonomy (7 classes)** | 120 | **A 0.433 · C 0.433 · D 0.433**; macro-F1 0.434 | `evals/results/v5_eval.json` |
 | 13 | D vs C, p95 latency | 120 | 40.4 s vs 19.0 s; arm A 4.7 s | same |
 | 14 | Per-class F1 (arm A) | 120 | credit_rating 0.94, leadership_change 0.88, m_and_a 0.67, other 0.43, **capital_action 0.00, regulatory_action 0.00** | same |
 | 15 | `other` precision (arm A / arm D) | 120 | **0.294** (TP 15, FP 36) / 0.342 (TP 14, FP 27) | same |
@@ -142,7 +143,11 @@ optimistic; every conclusion in this project rests on row 12.
 
 - Row 8 is agreement with NSE's taxonomy, not correctness about the market.
 - Rows 7 and 8 must never appear without each other.
-- **Row 12 measured one-line summaries. Row 12b is the same run on real filing text.** The
+- **Row 12 measured one-line summaries. Row 12b is the same run on real filing text.**
+- **Row 12 is the v2 nine-class taxonomy. Row 12c re-scores the same predictions under the v5
+  seven-class taxonomy and gets 0.433, not 0.558.** The 0.558 was partly a class-granularity
+  artifact; macro-F1 barely moved (0.436 -> 0.434), so the engine's discrimination is the same
+  either way. **Do not quote 0.558 without row 12c beside it.** The
   aggregate accuracy *falls* (0.558 → 0.475) but three classes come off zero
   (`capital_action` 0.00 → 0.39, `regulatory_action` 0.00 → 0.30, `earnings_result` 0.33 → 0.80)
   while one regresses badly (`m_and_a` 0.67 → 0.13). Latency rises 12×. **Row 12 must not be
