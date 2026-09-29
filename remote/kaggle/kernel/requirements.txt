@@ -1,0 +1,5 @@
+laya>=0.3.21
+transformers>=4.48
+safetensors>=0.4
+huggingface_hub>=0.20
+bitsandbytes

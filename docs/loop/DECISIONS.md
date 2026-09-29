@@ -1129,3 +1129,45 @@ to *run* the experiment, and it fits by about 140 MB. The realistic target is st
 `docs/loop/STOP_RULE.md`'s 0.65 macro-F1 on the held-out 120, and a 4-epoch run at micro-batch
 2 is not the reference recipe's effective batch of 64 — it is 32 — so if the run falls short,
 the honest reading has to allow that the recipe was not reproduced faithfully.
+
+---
+
+## D-028 — 2026-09-28 — All heavy compute moves off this machine; System-2 is opt-in
+
+**DECISION.** No training, no GPU work, and no resident language model on the development
+machine. Fine-tuning runs on **Kaggle's free GPU T4 ×2**; the local box writes code, scrapes
+small JSON, and runs the product in its measured-default mode.
+
+**CONTEXT.** Two separate resource problems, one of them self-inflicted.
+
+1. **A local fine-tune took the whole machine.** A 4 GB RTX 3050 at 95–100% and ~4 GiB RAM
+   starved everything else on a 7.5 GiB box, and the session was killed more than once. It ran
+   for over an hour without producing a saved checkpoint. The 4 GB card fits the model by about
+   **140 MB** (D-027) — which is not a margin, it is a coin flip.
+2. **The resident language model was holding ~2.2 GB of VRAM for a path that is not the
+   default and measured no better.** `qwen2.5-coder:3b` sat loaded to serve `--mode loop`,
+   a mode D-012 shows is indistinguishable from not looping at all.
+
+**WHAT IS NOW WHERE.**
+
+| work | runs on | why |
+|---|---|---|
+| writing code, tests, docs, protocol | **local** | cheap, needs the repo |
+| scraping NSE, building the corpus | **local** | network-bound, writes ~3 MB of JSON |
+| the product in its default mode | **local** | System-1 only; no LLM resident |
+| **RLCD fine-tuning** | **Kaggle T4 ×2** | 14.6 GB per card, 2× the reference recipe's own hardware class |
+| evaluating the 120 held-out | **Kaggle** | part of the same run |
+
+**THE EVIDENCE THAT THE DEFAULT MODE NEEDS NO LLM.** With `qwen2.5-coder:3b` unloaded and no
+`llama-server` running: GPU at **0 MiB**, 5.1 GiB RAM free, and `POST /command` still returns a
+market workspace with 20 real events and `degraded: []`. The reasoning model is genuinely
+optional, which is what D-012's finding implies and what the terminal's design already assumed.
+
+**START IT WHEN YOU WANT IT.** `ollama serve` and `ollama pull qwen2.5-coder:3b`. Nothing is
+lost — but nothing auto-loads either, and nothing will unless a `--mode loop` run asks for it.
+
+**HONEST NOTE ON THE KAGGLE PATH.** Three kernel versions failed before it ran, all my bugs:
+a `torch` guard referencing torch before importing it, an import in one cell that a later cell
+depended on, and a dataset-directory glob that matched Kaggle's owner folder rather than the
+dataset. Each took one push-and-read cycle, about four minutes. That is the real cost of moving
+compute off the machine: the loop is slower per iteration, and the machine stops crashing.

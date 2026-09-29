@@ -93,14 +93,27 @@ divya protocol show
 divya protocol diff --other path/to/older/questions.yaml
 ```
 
-### Models
+### Models and compute
 
-One System-1 checkpoint and one System-2 model. That is the whole requirement:
+**Nothing heavy runs on your machine by default.** The measured default is System-1 alone, so
+the product works with **no language model resident at all** — verified with the GPU at 0 MiB.
 
 ```bash
-ollama pull qwen2.5-coder:3b     # System-2 (~1.9 GB); the first `divya decide --mode loop` pulls it
-# Laya's `english` checkpoint (~248 MB) downloads automatically on first System-1 use.
+# Laya's `english` checkpoint (~248 MB) downloads automatically on first System-1 use. Nothing else.
+# System-2 is OPT-IN. Start it only if you want --mode loop, which measured no better:
+ollama serve && ollama pull qwen2.5-coder:3b    # ~1.9 GB
 ```
+
+**Fine-tuning runs on Kaggle's free GPU T4 ×2**, not locally. The repo carries a ready kernel:
+
+```bash
+cd remote/kaggle/kernel
+kaggle kernels push -p .       # dataset + notebook are already in the bundle
+kaggle kernels status ravaniroshan/divya-laya-finetune
+```
+
+`docs/loop/DECISIONS.md` D-027 and D-028 record why: a 4 GB card fits a 421M model with
+8-bit AdamW by about 140 MB, and running it there starved the machine.
 
 A 4B model was measured and **deleted**, not kept: 42–64 s warm against this 0.56–0.91 s, with
 only 1.3–2.2 s of that being generation (memory thrash — see DECISIONS D-009/D-014). If
