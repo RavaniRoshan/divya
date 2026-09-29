@@ -291,7 +291,8 @@ laya 0.3.21. Full method, n, and baseline in [docs/loop/EVALS.md](docs/loop/EVAL
 | Calibration at 0.93–1.0 (n=7) | 100% accuracy — well calibrated |
 | Batching lever | **1.10× at best** — torch already saturates all 16 threads |
 | System-2 warm latency | `qwen2.5-coder:3b` **0.56–0.91 s**; `qwen3:4b` **42–64 s** (memory thrash) |
-| **A/B/C/D on real NSE data** (n=120) | see below — **the thesis was rejected** |
+| **A/B/C/D on real NSE data** (n=120) | loop **rejected**; see below |
+| **Fine-tuned System-1, 120 held-out** | **accuracy 0.975, macro-F1 ≥ 0.83** (bar 0.65) — **stop rule PASSED** |
 | Significance, A vs D | McNemar **p = 0.0312**, paired bootstrap 95% CI **[−0.0917, −0.0167]** — excludes zero |
 | Discordant pairs | **only-A-correct 6, only-D-correct 0** — the loop fixed nothing and broke six |
 | Dead classes | **three at F1 = 0.00**: capital_action, fundraise, regulatory_action |

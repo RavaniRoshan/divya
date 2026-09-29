@@ -18,6 +18,7 @@ import hashlib
 import logging
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from divya.protocol.schema import DecisionSpec
@@ -59,11 +60,41 @@ class System1Answer:
         return 0.0
 
 
+#: The fine-tuned System-1, when it is present.
+#:
+#: This is the default, and it is a different model from the one Laya ships. Fine-tuned on 4,692
+#: real NSE announcements labelled with the exchange's own `desc` taxonomy, it scores **0.975
+#: accuracy on 120 held-out announcements** against **0.433 zero-shot** (DECISIONS D-029). The
+#: base checkpoint is kept as an explicit fallback, never as a silent default, because "the
+#: engine is 54 points worse than it could be" is not something to discover at runtime.
+DEFAULT_FINETUNED = Path("data/finetune/laya-indian-filings")
+
+
+def resolve_checkpoint() -> str | None:
+    """Path to the fine-tuned checkpoint, or None if it has not been trained yet.
+
+    A complete checkpoint is one with weights, a config, a tokenizer AND an encoder -- all four,
+    because loading a partial one fails deep inside the model rather than at the boundary.
+    """
+    if not DEFAULT_FINETUNED.is_dir():
+        return None
+    needed = ("model.safetensors", "rl_agent_config.json", "tokenizer", "encoder")
+    if not all((DEFAULT_FINETUNED / n).exists() for n in needed):
+        return None
+    if (DEFAULT_FINETUNED / "model.safetensors").stat().st_size == 0:
+        return None  # a truncated download is worse than no download
+    return str(DEFAULT_FINETUNED)
+
+
 class LayaSystem1:
     """Thin, synchronous adapter over ``laya.Router``.
 
     Constructing this class does not load anything; the engine loads on first ``answer`` call
     and is cached, because checkpoint load is the single most expensive thing this system does.
+
+    Defaults to the **fine-tuned** checkpoint when one has been trained, and to Laya's base
+    checkpoint otherwise. Which one is in use is reported by ``divya status`` and recorded on
+    every decision, because a 0.975 engine and a 0.433 engine must never be indistinguishable.
     """
 
     def __init__(
@@ -73,7 +104,8 @@ class LayaSystem1:
         min_confidence: float | None = None,
         allow_download: bool = True,
     ) -> None:
-        self.model = model
+        self.model = model or resolve_checkpoint()
+        self.is_finetuned = self.model is not None
         self.max_len = max_len
         self.min_confidence = min_confidence
         self.allow_download = allow_download
@@ -89,6 +121,24 @@ class LayaSystem1:
         except Exception:
             return False
         return True
+
+    def describe(self) -> dict[str, Any]:
+        """Which engine this is, and what it scores.
+
+        Recorded on every run, because the fine-tuned and base checkpoints differ by 54 points
+        of accuracy (DECISIONS D-029) and a reader of a trace has to be able to tell them apart.
+        """
+        return {
+            "engine": "laya",
+            "checkpoint": self.model or "convaiinnovations/laya (base, zero-shot)",
+            "finetuned": self.is_finetuned,
+            "note": (
+                "fine-tuned on 4,692 NSE announcements; 0.975 accuracy on 120 held-out"
+                if self.is_finetuned
+                else "BASE zero-shot checkpoint: 0.433 accuracy on the same 120. Fine-tuning "
+                     "is available and changes this by 54 points (docs/loop/DECISIONS.md D-029)."
+            ),
+        }
 
     def load(self) -> Any:
         if self._router is not None:
@@ -223,6 +273,14 @@ class NullSystem1:
 
     def load_seconds(self) -> None:
         return None
+
+    def describe(self) -> dict[str, Any]:
+        return {
+            "engine": "unavailable",
+            "checkpoint": None,
+            "finetuned": False,
+            "note": "laya is not installed; no typed decisions can be produced",
+        }
 
     def answer(
         self,
