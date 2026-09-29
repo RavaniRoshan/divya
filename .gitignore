@@ -23,3 +23,16 @@ frontend/*.tsbuildinfo
 frontend/shot.mjs
 test-results/
 frontend/test-results/
+
+# Exchange data. Scraped from NSE, exchange-proprietary, and NOT cleared for redistribution
+# (docs/loop/BLOCKERS.md B-002). Never commit it. Regenerate locally with:
+#   divya index --days 5
+#   PYTHONPATH=src .venv/bin/python research/scripts/build_finetune_corpus.py --months 5
+# The schema is documented in evals/DATASETS.md with placeholder values.
+evals/datasets/nse_*.jsonl
+evals/datasets/finetune_corpus.jsonl
+remote/kaggle/*.jsonl
+remote/kaggle/kernel/*.jsonl
+
+# Trained weights. 1.7 GB, produced by the Kaggle kernel (see B-008).
+data/finetune/
