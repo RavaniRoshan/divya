@@ -189,3 +189,45 @@ and lone surrogates crashing `Observation`.
    ambiguous minority. Full text is worth ~30 points of per-class F1 and costs 12× latency; this
    is the obvious way to keep one without paying the other.
 4. On a machine with more RAM, test H5 before anything else.
+
+---
+
+## FOUR FAILED EXPERIMENTS, AND WHAT THEY TOGETHER SAY
+
+After the v2 result, four attempts to improve `event_type` accuracy were made and measured.
+**All four failed**, and the pattern is more informative than any individual outcome.
+
+| # | change | outcome | D- |
+|---|---|---|---|
+| 1 | Explicit contrast clauses in class descriptions ("this is NOT a purchase of another company's shares") | **no effect**; `m_and_a` 0.07 → 0.13, `capital_action` **regressed** 0.62 → 0.44 | D-024 |
+| 2 | A binary gate `transfers_a_business` | **worked as a discriminator** (20/24 correct) but the 9-way classifier in the same pass **ignored it completely** | D-025 |
+| 3 | Hierarchical routing on that gate | **never fired** — gate confidence ranged 0.5006–0.6397 and never reached 0.70 | D-025 |
+| 4 | Merging the three confused classes into one | macro-F1 **unchanged** (0.436 → 0.434); accuracy **fell** 0.558 → 0.433 | D-026 |
+
+**What they collectively say.** Every one of these was a variation on the same lever — *change
+the question set* — and the lever does not move. The evidence converges on a **capability limit
+of a 421M zero-shot non-autoregressive encoder on noisy Indian financial text**, not a prompt
+defect:
+
+- a 421M encoder does not read a contrast clause (1),
+- it makes one forward pass and cannot compose "given A, the answer cannot be B" (2),
+- on this distinction it is guessing and **its own confidence is honest about the guessing**
+  — accurate 20/24 times, confident 0/24 (3),
+- and merging the classes it cannot separate does not make it able to separate them (4).
+
+**The most valuable single measurement in the project** is not the headline accuracy. It is
+that the engine is at **0.43 macro-F1** and the per-class pattern says exactly why: excellent on
+`credit_rating` (1.00) and `leadership_change` (0.82), poor wherever the answer requires reading
+a document rather than a headline.
+
+**What did work** was more text, not better questions: full filing text moved
+`capital_action` 0.00 → 0.39, `regulatory_action` 0.00 → 0.30 and `earnings_result` 0.33 → 0.80
+on identical questions. That is the direction with evidence behind it, and the two-stage reader
+(`divya read`) exists to get that accuracy without paying the 12× latency on every event.
+
+**OPEN, AND THE NEXT THING TO SETTLE:** whether 0.43 is a *reasonable* number for a model this
+size, or a poor one that a domain-adapted alternative would beat by a wide margin. If published
+work reaches 0.75–0.90 on comparable text with a fine-tuned transformer, then the honest
+conclusion is not "our prompts need work" — it is that **a 421M zero-shot encoder is the wrong
+System-1 for this domain**, and the architecture's assumption that the typed-decision engine is
+the analytical core needs revisiting. That question is being researched rather than guessed at.
