@@ -21,15 +21,17 @@ from divya.eval.significance import (
     report,
 )
 
-RESULTS = Path("evals/results/real_eval.json")
-# The real-evaluation artifacts depend on the NSE-derived dataset, which this repo
-# deliberately does not ship (exchange data, B-002). Skip rather than fail when it
-# is absent: a clean clone is the normal case, not a broken one.
-if not DATASET.exists() or not RESULTS.exists():
-    pytest.skip("regenerate with build_real_dataset.py (exchange data, B-002)",
-                allow_module_level=True)
-RESULT = RESULTS
+RESULT = Path("evals/results/real_eval.json")
 DATASET = Path("evals/datasets/nse_v5_eval_set.jsonl")
+
+# These artifacts depend on the NSE-derived dataset, which this repo deliberately does not
+# ship (exchange data, B-002). Skip rather than fail when it is absent: a clean clone is the
+# normal case for anyone else, and a red test suite there would be a false alarm.
+if not DATASET.exists() or not RESULT.exists():
+    pytest.skip(
+        "regenerate with: divya index --days 5 && research/scripts/build_real_dataset.py",
+        allow_module_level=True,
+    )
 
 
 def _write(

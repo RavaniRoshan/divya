@@ -161,7 +161,14 @@ DECLARED_NOT_OBSERVED: tuple[str, ...] = (
 )
 
 
+#: The NSE-derived dataset is deliberately not shipped (exchange data, B-002). Everything that
+#: reads it is skipped rather than failed, so a clean clone is a passing clone.
+HAVE_EXCHANGE_DATA = DATASET.exists()
+
+
 def _dataset_records() -> list[dict[str, object]]:
+    if not HAVE_EXCHANGE_DATA:
+        return []
     return [
         json.loads(line)
         for line in DATASET.read_text(encoding="utf-8").splitlines()
@@ -195,6 +202,7 @@ def _feed_descs() -> list[str]:
 # --- coverage of the real taxonomy -----------------------------------------
 
 
+@pytest.mark.skipif(not HAVE_EXCHANGE_DATA, reason="exchange dataset not shipped (B-002)")
 def test_the_hardcoded_class_list_is_the_one_the_live_fetch_contained():
     rep = _report()
     # Every class the report names must be one the taxonomy explicitly knows about -- either
@@ -320,6 +328,7 @@ def test_whitespace_is_stripped_but_the_class_is_not_guessed():
 # --- taxonomy_report arithmetic --------------------------------------------
 
 
+@pytest.mark.skipif(not HAVE_EXCHANGE_DATA, reason="exchange dataset not shipped (B-002)")
 def test_taxonomy_report_reproduces_the_shipped_artifact():
     descs = _feed_descs()
     report = taxonomy_report(descs)
@@ -383,6 +392,7 @@ def test_the_unmapped_population_is_the_dominant_one():
 # --- against the shipped evaluation artifact -------------------------------
 
 
+@pytest.mark.skipif(not HAVE_EXCHANGE_DATA, reason="exchange dataset not shipped (B-002)")
 def test_every_dataset_label_is_what_classify_returns():
     """The dataset's `labels.event_type` is derived from the taxonomy; if they ever diverge, the
     evaluation is scoring against a label the product would not produce."""
@@ -398,6 +408,7 @@ def test_every_dataset_label_is_what_classify_returns():
     assert bad == [], f"dataset labels that disagree with the taxonomy: {bad[:5]}"
 
 
+@pytest.mark.skipif(not HAVE_EXCHANGE_DATA, reason="exchange dataset not shipped (B-002)")
 def test_the_headline_eval_number_is_pinned_to_the_artifact():
     """Arm A on the real NSE sample is the number the README quotes. Pin it.
 

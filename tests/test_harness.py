@@ -326,6 +326,7 @@ def test_unnecessary_system1_calls_are_counted():
 # --- item loading ----------------------------------------------------------
 
 
+@pytest.mark.skipif(not HAVE_EXCHANGE_DATA, reason="exchange dataset not shipped (B-002)")
 def test_load_items_reads_the_real_dataset_and_preserves_null_annotator_confidence():
     items = H.load_items(DATASET, limit=5)
     assert len(items) == 5
@@ -339,6 +340,7 @@ def test_load_items_reads_the_real_dataset_and_preserves_null_annotator_confiden
     assert all(i.labels["event_type"] for i in items)
 
 
+@pytest.mark.skipif(not HAVE_EXCHANGE_DATA, reason="exchange dataset not shipped (B-002)")
 def test_load_items_filters_by_stratum_and_limit():
     clear = H.load_items(DATASET, strata=["clear"])
     assert clear
@@ -488,6 +490,7 @@ def _run_with(*answers: tuple[str, float]) -> Any:
 # --- the failed-arm flag ----------------------------------------------------
 
 
+@pytest.mark.skipif(not HAVE_EXCHANGE_DATA, reason="exchange dataset not shipped (B-002)")
 def test_an_arm_that_answers_nothing_is_flagged_as_a_failed_arm(monkeypatch, tmp_path):
     """Arm B in the shipped run errored on 120/120 and produced no output.
 
@@ -517,6 +520,7 @@ def test_an_arm_that_answers_nothing_is_flagged_as_a_failed_arm(monkeypatch, tmp
     assert report["config"]["system1_available"] is False
 
 
+@pytest.mark.skipif(not HAVE_EXCHANGE_DATA, reason="exchange dataset not shipped (B-002)")
 def test_an_arm_that_answers_is_not_flagged(monkeypatch, tmp_path):
     class Unavailable:
         def is_available(self) -> bool:
