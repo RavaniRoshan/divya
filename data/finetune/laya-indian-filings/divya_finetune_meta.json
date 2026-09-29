@@ -1,0 +1,48 @@
+{
+  "corpus": "finetune_corpus.jsonl",
+  "n_train": 4692,
+  "n_calibration": 400,
+  "classes": [
+    "auditor_change",
+    "capital_event",
+    "credit_rating",
+    "earnings_result",
+    "leadership_change",
+    "other",
+    "regulatory_action"
+  ],
+  "epochs": 4,
+  "micro_batch": 8,
+  "accum": 8,
+  "group_size": 4,
+  "device": "cuda",
+  "optimizer": "adamw_fp32",
+  "temperature": 3.1476845741271973,
+  "seed": 20260929,
+  "history": [
+    {
+      "epoch": 0,
+      "loss_rl": 0.0019779969304260596,
+      "loss_ce": 0.4618439791977419,
+      "seconds": 168
+    },
+    {
+      "epoch": 1,
+      "loss_rl": -0.006290548443762519,
+      "loss_ce": 0.31429022317056665,
+      "seconds": 329
+    },
+    {
+      "epoch": 2,
+      "loss_rl": -0.0053222874279437015,
+      "loss_ce": 0.21021544928449154,
+      "seconds": 492
+    },
+    {
+      "epoch": 3,
+      "loss_rl": 0.0008891653444053164,
+      "loss_ce": 0.18490954931578765,
+      "seconds": 653
+    }
+  ]
+}

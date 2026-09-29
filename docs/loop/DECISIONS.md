@@ -1171,3 +1171,62 @@ a `torch` guard referencing torch before importing it, an import in one cell tha
 depended on, and a dataset-directory glob that matched Kaggle's owner folder rather than the
 dataset. Each took one push-and-read cycle, about four minutes. That is the real cost of moving
 compute off the machine: the loop is slower per iteration, and the machine stops crashing.
+
+---
+
+## D-029 — 2026-09-29 — The stop rule PASSES: fine-tuning takes System-1 from 0.433 to 0.975
+
+**DECISION.** The typed-decision approach is **not** refuted for this domain. Fine-tune Laya and
+make it the default System-1. This supersedes the pessimistic reading of D-026.
+
+**RESULT — 120 held-out NSE announcements, never trained on, never tuned against.**
+
+| | accuracy | macro-F1 |
+|---|---|---|
+| zero-shot, through the Router | 0.4333 | 0.147 (dev) |
+| **fine-tuned, RLCD, 4 epochs** | **0.9750** | **0.830 – 0.987** (bounded) |
+| bar (`STOP_RULE.md`) | — | 0.65 |
+
+Per-class accuracy on the held-out set: `capital_event` 1.00 (28), `leadership_change` 1.00 (43),
+`credit_rating` 1.00 (8), `earnings_result` 1.00 (4), `auditor_change` 1.00 (2),
+`regulatory_action` 0.941 (17), `other` 0.889 (18). **Three errors out of 120.**
+
+Training on Kaggle GPU T4 ×2 (14.6 GB each), 4,692 train items, 400 held out for temperature
+fitting, micro-batch 8 × accum 8, effective batch 64, 653 s. `loss_ce` 0.4618 → 0.1849.
+Fitted temperature 3.1477.
+
+**THE METRIC BUG, AND WHY THE RANGE IS A RANGE.** The kernel printed macro-F1 0.2786 next to
+accuracy 0.975, and that contradiction is what exposed the bug: it computed
+`fp = (N - tot[lb]) - tp`, which subtracts correct predictions from the pool of items that are
+*not* in the class. It produces **negative** false positives and **precision 55.0**. The correct
+form is `fp = pred[lb] - tp[lb]`, and the kernel never kept a per-class prediction count.
+
+The fine-tuned weights would not transfer out of the kernel (`kaggle kernels output` delivered
+`model.safetensors` as 0 bytes, twice), so macro-F1 is **bounded rather than recomputed**:
+per-class *recall* is exact and was reported; *precision* was not. The worst case assigns all
+three errors to a single class, which maximises every false-positive term at once and is
+strictly worse than any real confusion matrix. That bound is **0.830**; the best case is 0.987.
+
+**The only claim that needs making is the worst case, and it passes.** The kernel's F1 is fixed
+(`pred` counter plus an assertion that false positives are non-negative) so the next run is
+right the first time.
+
+**WHAT THIS DOES NOT CHANGE.**
+
+- **The loop result stands.** D-012 and D-026: the recurrent System-2/System-1 loop was
+  measurably *worse* than a single System-1 pass, and is indistinguishable from it after the
+  taxonomy merge. **A much better System-1 does not make System-2 useful.** Those are separate
+  questions and only one of them moved.
+- **D-024 → D-026 stand as diagnoses.** Four question-set edits failed because the *model* was
+  the limit. That diagnosis was correct and the fix was training. The four experiments were
+  not wasted — they are what proved the lever was the model.
+- **Labels are still NSE's `desc` taxonomy.** 0.975 is agreement with the exchange's filing
+  classification, not correctness about the market. It is a real, published, human-curated
+  label, and it is not ground truth.
+- **The recipe was not reproduced exactly.** Single-process gradient accumulation, not DDP. The
+  effective batch matches at 64; the rest does not.
+
+**NEXT, AND IT IS NO LONGER A TAXONOMY PROBLEM.** With System-1 at 0.975 on event typing, the
+binding constraint moves back to where the per-class pattern always pointed: `is_material`,
+`materiality` and `direction` are still unmeasured on real data (B-005), and they need
+hand-labelling rather than a taxonomy edit.

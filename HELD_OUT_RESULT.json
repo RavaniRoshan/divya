@@ -1,0 +1,17 @@
+{
+  "n": 120,
+  "accuracy": 0.975,
+  "macro_f1": 0.2785714285714286,
+  "bar": 0.65,
+  "verdict": "FIRED",
+  "device": "cuda",
+  "per_class": {
+    "auditor_change": 1.0,
+    "capital_event": 1.0,
+    "credit_rating": 1.0,
+    "earnings_result": 1.0,
+    "leadership_change": 1.0,
+    "other": 0.8889,
+    "regulatory_action": 0.9412
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "source": "Kaggle GPU T4 x2, ravaniroshan/divya-laya-finetune, kernel version 6",
+  "n_heldout": 120,
+  "accuracy": 0.975,
+  "macro_f1_kernel_reported": 0.2786,
+  "macro_f1_kernel_reported_IS_WRONG": true,
+  "why_wrong": "the kernel computed fp = (N - tot[lb]) - tp, which subtracts correct predictions from the pool of NON-members of the class. It yields NEGATIVE false positives and precision 55.0. The correct form is fp = pred[lb] - tp[lb], and the kernel never kept a per-class prediction count.",
+  "macro_f1_derived_worst_case": 0.8304,
+  "macro_f1_derived_best_case": 0.9873,
+  "derivation": "Bounded rather than recomputed, because the fine-tuned weights would not transfer out of the kernel (kaggle kernels output delivered model.safetensors as 0 bytes). Per-class recall is exact and is reported by the kernel; precision is not, so macro-F1 is bounded instead. WORST case assigns all 3 errors to a single class, which maximises every false-positive term at once and is strictly worse than any real confusion matrix. BEST case assigns each error to its own class, giving zero false positives. The true value lies in [0.830, 0.987].",
+  "stop_rule_bar": 0.65,
+  "stop_rule_verdict": "PASSED",
+  "stop_rule_note": "Passes under the WORST case, which is the only claim that needs making. The 0.2786 the kernel printed came from the metric bug above and is not a property of the model.",
+  "per_class_accuracy": {
+    "auditor_change": 1.0, "capital_event": 1.0, "credit_rating": 1.0,
+    "earnings_result": 1.0, "leadership_change": 1.0, "other": 0.8889,
+    "regulatory_action": 0.9412
+  },
+  "per_class_support": {
+    "auditor_change": 2, "capital_event": 28, "credit_rating": 8, "earnings_result": 4,
+    "leadership_change": 43, "other": 18, "regulatory_action": 17
+  },
+  "total_errors": 3,
+  "baseline_zero_shot_accuracy_on_same_120": 0.4333,
+  "training": {
+    "epochs": 4, "micro_batch": 8, "accum": 8, "group_size": 4,
+    "n_train": 4692, "n_calibration": 400, "optimizer": "adamw_fp32",
+    "device": "cuda (2x Tesla T4, 14.6 GB each)",
+    "loss_rl": [0.0020, -0.0063, -0.0053, 0.0009],
+    "loss_ce": [0.4618, 0.3143, 0.2102, 0.1849],
+    "fitted_temperature": 3.1477
+  }
+}
