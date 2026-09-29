@@ -1086,3 +1086,46 @@ reading a document rather than a headline. The single most promising lever remai
 already identified: **full filing text**, which moved `capital_action` 0.00 → 0.39 and
 `earnings_result` 0.33 → 0.80 when the same engine finally saw the document. That is worth far
 more than another version of questions.yaml.
+
+---
+
+## D-027 — 2026-09-28 — GPU fine-tuning is possible here, but only just, and only with the deps installed
+
+**DECISION.** Fine-tune on the RTX 3050 using bf16/fp16 autocast + 8-bit AdamW +
+gradient checkpointing, micro-batch 2, gradient accumulation 16. No DDP.
+
+**CONTEXT.** Laya's reference recipe uses **2× T4** with DDP and fp32 AdamW. This box has
+**one 4 GB card** in WSL2.
+
+**EVIDENCE — what works.**
+
+| step | result |
+|---|---|
+| `torch 2.14.0+cpu` (the original install) | `cuda.is_available() == False` — no GPU at all |
+| `torch --index-url …/cu126` **with** dependencies | **`torch 2.14.0+cu126`, `cuda True`, WSL2 passthrough works** |
+| 4096² fwd+bwd | 0.158 s, peak 341 MB |
+| RLCD training, micro-batch 2, accum 16 | runs at **95–100% GPU, 3953 MiB of 4096** |
+
+**That 3953 MiB is the whole story of this hardware.** A 421M model in fp32 with fp32 AdamW
+needs roughly 6.8 GB of optimizer state before a single activation is stored, so the reference
+recipe **cannot** run here at all. 8-bit AdamW plus gradient checkpointing is not an
+optimisation on this box — it is the only configuration that fits.
+
+**TWO MISTAKES WORTH RECORDING, both made here and both self-inflicted.**
+
+1. **`pip install --no-deps torch` replaced the working CPU wheel with a CUDA wheel whose
+   nvidia runtime libraries were never installed.** Torch then failed to import *at all*
+   (`libcudart.so.12: cannot open shared object file`) and the entire project was broken until
+   it was reverted. The fix is `--force-reinstall` **without** `--no-deps`.
+2. **`pip install torch` is a no-op when a CPU wheel is already present**, because
+   `2.14.0+cpu` satisfies the `torch` requirement. It must be `--force-reinstall`, and the
+   apparent success ("Requirement already satisfied") looks exactly like a working install.
+
+Both were caught by running things rather than reading them, and both are the kind of error
+that would be invisible in a report and obvious in a broken environment.
+
+**WHAT THIS DOES NOT CLAIM.** That a 4 GB card is a sensible place to fine-tune. It is enough
+to *run* the experiment, and it fits by about 140 MB. The realistic target is still
+`docs/loop/STOP_RULE.md`'s 0.65 macro-F1 on the held-out 120, and a 4-epoch run at micro-batch
+2 is not the reference recipe's effective batch of 64 — it is 32 — so if the run falls short,
+the honest reading has to allow that the recipe was not reproduced faithfully.
