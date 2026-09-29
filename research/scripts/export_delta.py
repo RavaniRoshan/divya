@@ -128,8 +128,7 @@ def apply_delta(
         if name not in base or name not in delta:
             continue
         shape = tuple(spec["shape"])
-        n = spec["n"]
-        d = torch_flat_to_shape(delta[name], shape, n)
+        d = torch_flat_to_shape(delta[name], shape)
         base[name] = (base[name].float() + d.float()).to(base[name].dtype)
         applied += 1
 
@@ -145,7 +144,7 @@ def apply_delta(
     return {"tensors_patched": applied, "kept": meta["keep"], "out": str(out_dir)}
 
 
-def torch_flat_to_shape(flat, shape, n):
+def torch_flat_to_shape(flat, shape):
     import torch
 
     full = torch.zeros(int(torch.tensor(shape).prod()), dtype=torch.float32)
@@ -163,7 +162,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.apply:
-        import torch  # noqa: F401
+        import torch
 
         print(json.dumps(apply_delta(Path(args.base), Path(args.out), Path(args.tuned)), indent=2))
         return 0

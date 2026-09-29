@@ -33,6 +33,9 @@ from test_redteam import StubSystem1
 
 REPO = Path(__file__).resolve().parents[1]
 DATASET = REPO / "evals" / "datasets" / "nse_v5_eval_set.jsonl"
+# Exchange data is not shipped (B-002). Tests that need it are skipped, not failed, so a
+# clean clone is a passing clone.
+HAVE_EXCHANGE_DATA = DATASET.exists()
 EVAL_ARTIFACT = REPO / "evals" / "results" / "real_eval.json"
 PROTOCOL = load_protocol()
 
@@ -545,6 +548,7 @@ def test_an_empty_dataset_stops_the_run(tmp_path):
 # --- the shipped artifact --------------------------------------------------
 
 
+@pytest.mark.skipif(not HAVE_EXCHANGE_DATA, reason="exchange dataset not shipped (B-002)")
 def test_the_shipped_eval_artifact_is_consistent_with_its_own_records():
     """Self-consistency only.
 
@@ -570,6 +574,7 @@ def test_the_shipped_eval_artifact_is_consistent_with_its_own_records():
         assert round(correct / len(recs), 4) == report["results"][arm]["event_type"]["accuracy"], arm
 
 
+@pytest.mark.skipif(not HAVE_EXCHANGE_DATA, reason="exchange dataset not shipped (B-002)")
 def test_the_shipped_arm_b_produced_no_answers_at_all():
     """v2 only. Arm B was not re-run under v5 and is unchanged by a taxonomy edit: it
     produces no typed answer either way, because the failure was the System-2-only path
@@ -585,6 +590,7 @@ def test_the_shipped_arm_b_produced_no_answers_at_all():
     assert "ARM_FAILED_NO_OUTPUT" not in report["results"]["B"]
 
 
+@pytest.mark.skipif(not HAVE_EXCHANGE_DATA, reason="exchange dataset not shipped (B-002)")
 def test_the_shipped_artifact_d_abstains_much_more_than_it_helps():
     """v5 numbers. Under v2 the loop abstained on 75.8% and scored 0.508 against A's 0.558;
     under v5 the three arms converge on 0.433 and the loop abstains on 34.2%. It is no longer
