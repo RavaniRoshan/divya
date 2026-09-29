@@ -8,7 +8,7 @@ there. The full 1.7 GB model simply will not come down.
 
 **The fix is to make the artifact smaller than the limit.** A four-epoch fine-tune moves most of
 the encoder very little. So rather than shipping the whole model, ship the *difference* from the
-stock checkpoint, keeping only the largest-magnitude changes:
+stock checkpoint, keeping the largest-magnitude changes:
 
     base (already on disk, downloads from HF fine)
       + delta (small, this script) = fine-tuned model
@@ -18,13 +18,14 @@ training changed, which is the thing worth keeping. The upstream checkpoint stay
 downloadable, so nothing is lost if the delta is dropped.
 
 **How sparse.** `--keep` is the fraction of the largest-magnitude entries retained per tensor.
-The default is chosen to land well under a transfer limit, and the actual size is printed
-in-kernel *before* anyone depends on it. If a run is given a higher `keep`, the script says
-plainly that the artifact is larger and may not transfer.
+Reconstruction is exact for the retained entries and reverts the rest to the base checkpoint, so
+the export records its own fidelity in `delta_index.json`. `--keep 1.0` is lossless: every entry
+is retained and the round trip is bit-exact, which is what `tests/test_export_delta.py` asserts.
 
-Reconstruction is exact for the retained entries and reverts the rest to base, so the export
-records its own fidelity: `keep=1.0` is lossless, and anything below that is a deliberate,
-stated approximation.
+**The indices are the whole trick.** A delta of *values* alone is not a delta -- a tensor's
+values are only meaningful at their positions. Both the positions and the values travel, keyed
+`idx/<tensor>` (int32) and `val/<tensor>` (fp16). `apply_delta` scatters the values back onto the
+recorded positions and leaves everything else at base.
 """
 
 from __future__ import annotations
@@ -34,21 +35,34 @@ import json
 import time
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]
-sys_path = str(REPO / "src")
+IDX_PREFIX = "idx/"
+VAL_PREFIX = "val/"
 
 
-def export_delta(
-    base_dir: Path,
-    tuned_dir: Path,
-    out_dir: Path,
-    keep: float = 0.05,
-) -> dict:
+def _select(base: dict, tuned: dict, keep: float):
+    """Yield (name, indices, values, shape) for the largest-magnitude entries per tensor.
+
+    Values travel as fp16, which is what makes a sparse delta small. At `keep=1.0` they
+    travel in the base tensor's own dtype instead, so the full round trip is bit-exact and
+    "lossless" means what it says. Any `keep<1.0` export is an approximation on both axes
+    and `delta_index.json` records that.
+    """
     import torch
-    from safetensors.torch import load_file, save_file
 
-    base = load_file(str(base_dir / "model.safetensors"))
-    tuned = load_file(str(tuned_dir / "model.safetensors"))
+    exact = keep >= 1.0
+    for name, tb in base.items():
+        tt = tuned[name].to(tb.dtype)
+        d = (tt.float() - tb.float()).flatten()
+        n = d.numel()
+        k = min(max(1, int(n * keep)), n)
+        idx = torch.topk(d.abs(), k, largest=True).indices
+        yield name, idx.to(torch.int32), d[idx].to(tb.dtype if exact else torch.float16), tb.shape
+
+
+def write_delta(base: dict, tuned: dict, out_dir: Path, keep: float = 0.05) -> dict:
+    """Write a delta between two state dicts. The one implementation; everything else is I/O."""
+    import torch
+    from safetensors.torch import save_file
 
     missing = set(base) ^ set(tuned)
     if missing:
@@ -57,39 +71,42 @@ def export_delta(
             f"Example: {sorted(missing)[:3]}. A delta needs identical keys."
         )
 
+    out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     t0 = time.perf_counter()
     index: dict[str, dict] = {}
     chunks: dict[str, torch.Tensor] = {}
     retained = total = 0
 
-    for name, tb in base.items():
-        tt = tuned[name].to(tb.dtype)
-        d = (tt.float() - tb.float())
-        flat = d.abs().flatten()
-        n = flat.numel()
-        k = max(1, int(n * keep))
-        idx = torch.topk(flat, k, largest=True).indices
-        chunks[name] = d.flatten()[idx].to(torch.float16)
-        index[name] = {"shape": list(tb.shape), "k": k, "n": n}
-        retained += k
-        total += n
+    for name, idx, val, shape in _select(base, tuned, keep):
+        chunks[IDX_PREFIX + name] = idx
+        chunks[VAL_PREFIX + name] = val.contiguous()
+        index[name] = {
+            "shape": list(shape),
+            "k": int(idx.numel()),
+            "n": int(torch.tensor(list(shape)).prod()),
+            "value_dtype": str(chunks[VAL_PREFIX + name].dtype).removeprefix("torch."),
+        }
+        retained += int(idx.numel())
+        total += index[name]["n"]
 
     save_file(chunks, str(out_dir / "delta.safetensors"))
     (out_dir / "delta_index.json").write_text(
         json.dumps(
             {
                 "base": "convaiinnovations/laya",
-                "base_dir_hint": str(base_dir),
                 "keep": keep,
                 "tensors": index,
                 "retained": retained,
                 "total": total,
                 "retained_fraction": round(retained / total, 6) if total else 0.0,
                 "fidelity": (
-                    "lossless" if keep >= 1.0
-                    else f"top-{keep:.0%} of entries by |delta| per tensor; "
-                         f"unretained entries revert to the base checkpoint"
+                    "lossless: every entry retained in the base dtype; round trip is bit-exact"
+                    if keep >= 1.0
+                    else f"approximate: top-{keep:.1%} of entries by |delta| per tensor, "
+                         "values stored as fp16; unretained entries revert to the base "
+                         "checkpoint. Verify by re-running the held-out evaluation on the "
+                         "reconstructed checkpoint before trusting any number from it."
                 ),
             },
             indent=2,
@@ -109,11 +126,15 @@ def export_delta(
     }
 
 
-def apply_delta(
-    base_dir: Path,
-    delta_dir: Path,
-    out_dir: Path,
-) -> dict:
+def export_delta(base_dir: Path, tuned_dir: Path, out_dir: Path, keep: float = 0.05) -> dict:
+    from safetensors.torch import load_file
+
+    base = load_file(str(Path(base_dir) / "model.safetensors"))
+    tuned = load_file(str(Path(tuned_dir) / "model.safetensors"))
+    return write_delta(base, tuned, Path(out_dir), keep)
+
+
+def apply_delta(base_dir: Path, delta_dir: Path, out_dir: Path) -> dict:
     """Reconstruct a usable checkpoint as base + delta. Exact for retained entries."""
     import shutil
 
@@ -124,12 +145,21 @@ def apply_delta(
     delta = load_file(str(delta_dir / "delta.safetensors"))
 
     applied = 0
-    for name, spec in meta["tensors"].items():
-        if name not in base or name not in delta:
+    for name in meta["tensors"]:
+        ik, vk = IDX_PREFIX + name, VAL_PREFIX + name
+        if name not in base or ik not in delta or vk not in delta:
             continue
-        shape = tuple(spec["shape"])
-        d = torch_flat_to_shape(delta[name], shape)
-        base[name] = (base[name].float() + d.float()).to(base[name].dtype)
+        idx = delta[ik].long()
+        val = delta[vk].float()
+        if idx.numel() != val.numel():
+            raise SystemExit(
+                f"{name}: {idx.numel()} indices but {val.numel()} values -- corrupt delta"
+            )
+        if int(idx.max()) >= base[name].numel():
+            raise SystemExit(f"{name}: index out of range for a tensor of {base[name].numel()}")
+        flat = base[name].float().flatten().clone()
+        flat[idx] += val
+        base[name] = flat.reshape(base[name].shape).to(base[name].dtype)
         applied += 1
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -144,30 +174,18 @@ def apply_delta(
     return {"tensors_patched": applied, "kept": meta["keep"], "out": str(out_dir)}
 
 
-def torch_flat_to_shape(flat, shape):
-    import torch
-
-    full = torch.zeros(int(torch.tensor(shape).prod()), dtype=torch.float32)
-    full[: flat.numel()] = flat.float()
-    return full.reshape(shape)
-
-
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--base", required=True, help="stock Laya checkpoint dir")
-    ap.add_argument("--tuned", required=True, help="fine-tuned checkpoint dir")
+    ap.add_argument("--base", help="stock Laya checkpoint dir")
+    ap.add_argument("--tuned", help="fine-tuned checkpoint dir")
     ap.add_argument("--out", required=True)
     ap.add_argument("--keep", type=float, default=0.05)
     ap.add_argument("--apply", action="store_true", help="reconstruct instead of export")
     args = ap.parse_args()
 
     if args.apply:
-        import torch
-
         print(json.dumps(apply_delta(Path(args.base), Path(args.out), Path(args.tuned)), indent=2))
         return 0
-
-    import torch  # noqa: F401
 
     res = export_delta(Path(args.base), Path(args.tuned), Path(args.out), args.keep)
     print(json.dumps(res, indent=2))

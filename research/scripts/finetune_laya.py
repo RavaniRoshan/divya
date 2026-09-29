@@ -326,6 +326,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--limit-dev", type=int, default=300)
     ap.add_argument("--device", default="auto")
     ap.add_argument("--out", default="data/finetune/laya-indian-filings")
+    ap.add_argument(
+        "--delta-out",
+        default=None,
+        help="also write a sparse delta against the base checkpoint here. The base weights "
+             "are held in memory at this point, so the delta costs no extra download -- "
+             "which is the point: the 1.7 GB full model cannot be pulled out of a Kaggle "
+             "kernel, but a ~50 MB delta can.",
+    )
+    ap.add_argument("--delta-keep", type=float, default=0.03)
     ap.add_argument("--eval-only", action="store_true")
     ap.add_argument("--seed", type=int, default=20260929)
     args = ap.parse_args(argv)
@@ -388,7 +397,13 @@ def main(argv: list[str] | None = None) -> int:
 
     tok = AutoTokenizer.from_pretrained(str(Path(model_dir) / "tokenizer"))
     model = build_model(cfgj, encoder_dir=str(Path(model_dir) / "encoder"))
-    model.load_state_dict(load_file(str(Path(model_dir) / "model.safetensors")), strict=True)
+    base_sd = load_file(str(Path(model_dir) / "model.safetensors"))
+    model.load_state_dict(base_sd, strict=True)
+    # Kept only when a delta is requested. It is the pre-training weights, so anything the
+    # optimiser later overwrites would make the delta wrong; and holding it here is what
+    # lets the delta be written without downloading the base checkpoint a second time.
+    base_for_delta = {k: v.detach().cpu().clone() for k, v in base_sd.items()} if args.delta_out else None
+    del base_sd
     model.to(device)
     if hasattr(model.encoder, "gradient_checkpointing_enable"):
         model.encoder.gradient_checkpointing_enable(
@@ -504,7 +519,8 @@ def main(argv: list[str] | None = None) -> int:
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    save_file(model.state_dict(), str(out / "model.safetensors"))
+    tuned_sd = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+    save_file(tuned_sd, str(out / "model.safetensors"))
     (out / "rl_agent_config.json").write_text(json.dumps(cfgj, indent=2), encoding="utf-8")
     import shutil
 
@@ -523,6 +539,27 @@ def main(argv: list[str] | None = None) -> int:
         encoding="utf-8",
     )
     print(f"saved to {out}")
+
+    # -- the delta, written while the base weights are still in memory -----------------
+    #
+    # Everything above produces a 1.7 GB checkpoint that cannot leave a Kaggle kernel: the
+    # output API returns it as 0 bytes, silently. Only this delta is small enough to travel,
+    # and it can be produced here because the base state dict never left memory. Reconstruct
+    # locally with `export_delta.py --apply`, then re-run the held-out evaluation on the
+    # result -- the delta is an approximation, and only that evaluation says how much of the
+    # 0.975 it actually preserves.
+    if base_for_delta is not None:
+        from export_delta import write_delta
+
+        dres = write_delta(base_for_delta, tuned_sd, Path(args.delta_out), args.delta_keep)
+        print("DELTA", json.dumps(dres), flush=True)
+        if not dres["transfers"]:
+            print(
+                f"WARNING: delta is {dres['delta_mb']} MB, over the size at which "
+                f"kaggle kernels output has been seen to return 0 bytes. Lower --delta-keep.",
+                flush=True,
+            )
+        del base_for_delta, tuned_sd
 
     res = evaluate(torch, model, tok, dev_rows_eval, options, device, args_limit_len, 256, None)
     print("AFTER fine-tuning (dev):", json.dumps(res))

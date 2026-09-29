@@ -10,18 +10,18 @@ against proper scoring rules. The calibrated probability *is* the product — a 
 abstains on `min_confidence` needs a trustworthy probability, and a softmax trained with
 cross-entropy is not that. The reference loss is reproduced faithfully below.
 
-**What is adapted, and why.** The reference runs 2× T4 with DDP. This box has one 4 GB card (or
+**What is adapted, and why.** The reference runs 2x T4 with DDP. This box has one 4 GB card (or
 none), so:
 
 | reference | here | why |
 |---|---|---|
-| 2× T4, DDP | single process, gradient accumulation | one GPU |
+| 2x T4, DDP | single process, gradient accumulation | one GPU |
 | fp32 AdamW, batch 8 | bf16 autocast, micro-batch 2, accum 16 | 4 GB card cannot hold fp32 AdamW state for 421M params |
 | `--nproc_per_node=2` | `--device` auto/cuda/cpu | — |
 | separate temperature fit after training | same, held-out calibration slice | the reference already holds calibration items out of training, and the comment there is worth keeping: a temperature fitted on items the run has trained on measures the fit, not the calibration |
 
 **Honesty about what this may or may not achieve.** The reference reaches 0.766 on its own
-benchmark with 2× T4. The pre-committed bar for this project is **0.65 macro-F1 on 120
+benchmark with 2x T4. The pre-committed bar for this project is **0.65 macro-F1 on 120
 held-out NSE announcements** (`docs/loop/STOP_RULE.md`). This script exists to give that number
 an honest chance, not to assume it.
 
@@ -33,7 +33,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import random
 import sys
 import time
@@ -82,7 +81,7 @@ def rlcd_loss(
 
     k = mask.sum(-1, keepdim=True).float()
 
-    eps = torch.randn((group_size,) + tuple(logits.shape), device=logits.device) * sigma * mask
+    eps = torch.randn((group_size, *tuple(logits.shape)), device=logits.device) * sigma * mask
     eps = (eps - eps.sum(-1, keepdim=True) / k) * mask
     z = logits.detach().unsqueeze(0) + eps
     q = torch.softmax(z.masked_fill(~mask, -1e4), -1)
@@ -134,8 +133,6 @@ def fit_temperature(torch: Any, model: Any, tok: Any, items: list[dict[str, Any]
     """
     if len(items) < 10:
         return 1.0
-    kmax = max(len(z) for z, _ in [(it["target"], it["maskers_len"]) if False else
-                                   (it["target"], it["target"]) for it in items])
     with torch.no_grad():
         z_list, t_list = [], []
         for it in items:
@@ -147,10 +144,11 @@ def fit_temperature(torch: Any, model: Any, tok: Any, items: list[dict[str, Any]
             m = b["marker_mask"].to(device)
             z_list.append(logits.float()[m])
             t_list.append(b["target"].to(device)[m])
+    # Pad every item's option scores to the widest one, or the softmax mixes items.
     L = max(z.shape[0] for z in z_list)
     Z = torch.full((len(z_list), L), -1e4, device=device)
     T = torch.zeros((len(z_list), L), device=device)
-    for i, (z, t) in enumerate(zip(z_list, t_list, strict=True)):
+    for i, (z, t) in enumerate(zip(z_list, t_list, strict=True), start=0):
         Z[i, : z.shape[0]] = z
         T[i, : t.shape[0]] = t
     log_t = torch.zeros(1, device=device, requires_grad=True)
@@ -205,7 +203,7 @@ def make_items(
     for r in rows:
         try:
             seq, markers = build_sequence(tok, r["text"], q, max_len, head_max_len)
-        except Exception as exc:  # noqa: BLE001 - one bad row must not lose the corpus
+        except Exception as exc:
             dropped_err += 1
             if dropped_err <= 3:
                 print(f"  skipping {r['id']}: {type(exc).__name__}: {exc}", file=sys.stderr)
@@ -227,7 +225,11 @@ def make_items(
 def assert_no_heldout(ids: set[str], heldout: Path) -> None:
     if not heldout.exists():
         return
-    banned = {json.loads(l)["id"] for l in heldout.read_text(encoding="utf-8").splitlines() if l.strip()}
+    banned = {
+        json.loads(line)["id"]
+        for line in heldout.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    }
     hit = banned & ids
     if hit:
         raise SystemExit(
@@ -264,9 +266,7 @@ def evaluate(torch: Any, model: Any, tok: Any, rows: list[dict[str, Any]],
              options: list[str], device: str, max_len: int, head_max_len: int,
              limit: int | None = None) -> dict[str, Any]:
     """Greedy accuracy and macro-F1 through the model itself, not through the Router."""
-    from laya.common import build_sequence, render_options
-
-    from laya.common import QTYPES, render_options
+    from laya.common import QTYPES, build_sequence, render_options
 
     crit = {o: "" for o in options}
     q = {"t": "choice", "ins": "Classify the corporate event this filing discloses.", "crit": crit}
@@ -278,7 +278,7 @@ def evaluate(torch: Any, model: Any, tok: Any, rows: list[dict[str, Any]],
         for r in use:
             try:
                 seq, markers = build_sequence(tok, r["text"], q, max_len, head_max_len)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 continue
             if len(markers) != k:
                 continue
@@ -326,6 +326,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--limit-dev", type=int, default=300)
     ap.add_argument("--device", default="auto")
     ap.add_argument("--out", default="data/finetune/laya-indian-filings")
+    ap.add_argument(
+        "--delta-out",
+        default=None,
+        help="also write a sparse delta against the base checkpoint here. The base weights "
+             "are held in memory at this point, so the delta costs no extra download -- "
+             "which is the point: the 1.7 GB full model cannot be pulled out of a Kaggle "
+             "kernel, but a ~50 MB delta can.",
+    )
+    ap.add_argument("--delta-keep", type=float, default=0.03)
     ap.add_argument("--eval-only", action="store_true")
     ap.add_argument("--seed", type=int, default=20260929)
     args = ap.parse_args(argv)
@@ -344,7 +353,11 @@ def main(argv: list[str] | None = None) -> int:
             f"{corpus} not found. Build it first:\n"
             f"  PYTHONPATH=src .venv/bin/python research/scripts/build_finetune_corpus.py"
         )
-    rows = [json.loads(l) for l in corpus.read_text(encoding="utf-8").splitlines() if l.strip()]
+    rows = [
+        json.loads(line)
+        for line in corpus.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     train_rows = [r for r in rows if r["split"] == "train"]
     dev_rows = [r for r in rows if r["split"] == "dev"]
     assert_no_heldout({r["id"] for r in rows}, Path(args.heldout))
@@ -384,7 +397,13 @@ def main(argv: list[str] | None = None) -> int:
 
     tok = AutoTokenizer.from_pretrained(str(Path(model_dir) / "tokenizer"))
     model = build_model(cfgj, encoder_dir=str(Path(model_dir) / "encoder"))
-    model.load_state_dict(load_file(str(Path(model_dir) / "model.safetensors")), strict=True)
+    base_sd = load_file(str(Path(model_dir) / "model.safetensors"))
+    model.load_state_dict(base_sd, strict=True)
+    # Kept only when a delta is requested. It is the pre-training weights, so anything the
+    # optimiser later overwrites would make the delta wrong; and holding it here is what
+    # lets the delta be written without downloading the base checkpoint a second time.
+    base_for_delta = {k: v.detach().cpu().clone() for k, v in base_sd.items()} if args.delta_out else None
+    del base_sd
     model.to(device)
     if hasattr(model.encoder, "gradient_checkpointing_enable"):
         model.encoder.gradient_checkpointing_enable(
@@ -429,7 +448,7 @@ def main(argv: list[str] | None = None) -> int:
              {"params": head, "lr": 1.0e-4}], weight_decay=0.01,
         )
         optname = "adamw8bit"
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"  8-bit AdamW unavailable ({type(exc).__name__}); using fp32 AdamW")
         opt = torch.optim.AdamW(
             [{"params": enc, "lr": 2.5e-5}, {"params": head, "lr": 1.0e-4}], weight_decay=0.01
@@ -458,7 +477,7 @@ def main(argv: list[str] | None = None) -> int:
             b = collate(torch, chunk, tok.pad_token_id)
             try:
                 with torch.autocast("cuda", dtype=torch.float16, enabled=(device == "cuda")):
-                    logits, act = model(
+                    logits, _act = model(
                         b["input_ids"].to(device), b["attention_mask"].to(device),
                         b["marker_pos"].to(device), b["marker_mask"].to(device),
                         b["qtype"].to(device),
@@ -500,7 +519,8 @@ def main(argv: list[str] | None = None) -> int:
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    save_file(model.state_dict(), str(out / "model.safetensors"))
+    tuned_sd = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+    save_file(tuned_sd, str(out / "model.safetensors"))
     (out / "rl_agent_config.json").write_text(json.dumps(cfgj, indent=2), encoding="utf-8")
     import shutil
 
@@ -519,6 +539,27 @@ def main(argv: list[str] | None = None) -> int:
         encoding="utf-8",
     )
     print(f"saved to {out}")
+
+    # -- the delta, written while the base weights are still in memory -----------------
+    #
+    # Everything above produces a 1.7 GB checkpoint that cannot leave a Kaggle kernel: the
+    # output API returns it as 0 bytes, silently. Only this delta is small enough to travel,
+    # and it can be produced here because the base state dict never left memory. Reconstruct
+    # locally with `export_delta.py --apply`, then re-run the held-out evaluation on the
+    # result -- the delta is an approximation, and only that evaluation says how much of the
+    # 0.975 it actually preserves.
+    if base_for_delta is not None:
+        from export_delta import write_delta
+
+        dres = write_delta(base_for_delta, tuned_sd, Path(args.delta_out), args.delta_keep)
+        print("DELTA", json.dumps(dres), flush=True)
+        if not dres["transfers"]:
+            print(
+                f"WARNING: delta is {dres['delta_mb']} MB, over the size at which "
+                f"kaggle kernels output has been seen to return 0 bytes. Lower --delta-keep.",
+                flush=True,
+            )
+        del base_for_delta, tuned_sd
 
     res = evaluate(torch, model, tok, dev_rows_eval, options, device, args_limit_len, 256, None)
     print("AFTER fine-tuning (dev):", json.dumps(res))
