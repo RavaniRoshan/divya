@@ -2,10 +2,10 @@
 
 **The problem this solves.** Full filing text is worth a great deal of accuracy — on real NSE
 announcements it moved `capital_action` from F1 0.00 to 0.39, `regulatory_action` from 0.00 to
-0.30, and `earnings_result` from 0.33 to 0.80. It also cost **12× the latency**: 4.7 s → 57.7 s
+0.30, and `earnings_result` from 0.33 to 0.80. It also cost **12x the latency**: 4.7 s → 57.7 s
 per event, because the encoder reads the whole document.
 
-Paying 12× on every event to help a minority of them is the wrong trade. And the minority is
+Paying 12x on every event to help a minority of them is the wrong trade. And the minority is
 identifiable *without* reading the filing: the summary is enough to tell you whether this is an
 event-bearing filing at all, and the first-pass decision tells you how confident you are.
 
@@ -120,6 +120,10 @@ class TwoStageReader:
             return {}, 0.0
         spec = get_spec(self.protocol, "event_triage")
         names = [d for d in self.decisions if d in {q.name for q in spec.questions}]
+        if not names:
+            # No decision named here is in this spec. Ask the whole tier-1 rather than
+            # silently returning nothing, which would read as 'the engine had no opinion'.
+            names = [q.name for q in spec.questions if q.tier == 1]
 
         runtime = DivyaRuntime(
             protocol=self.protocol,

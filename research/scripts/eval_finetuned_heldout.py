@@ -40,7 +40,6 @@ def macro_f1(tot: Counter, ok: Counter, pred: Counter) -> tuple[float, list[dict
 
     `fp = pred[lb] - tp[lb]`, which is the only definition that cannot go negative.
     """
-    n = sum(tot.values())
     rows: list[dict] = []
     f1s: list[float] = []
     for lb in sorted(tot):
@@ -57,7 +56,7 @@ def macro_f1(tot: Counter, ok: Counter, pred: Counter) -> tuple[float, list[dict
                 "precision": round(p, 4), "recall": round(r, 4), "f1": round(f1, 4),
             }
         )
-    assert all(x["fp"] >= 0 for x in rows), "false positives cannot be negative"
+    assert all(r["fp"] >= 0 for r in rows), "false positives cannot be negative"
     return (sum(f1s) / len(f1s) if f1s else 0.0), rows
 
 
@@ -67,7 +66,11 @@ def evaluate(model_dir: Path, heldout: Path, device: str = "cpu", max_len: int =
     from laya.common import QTYPES, build_model, build_sequence, render_options
     from safetensors.torch import load_file
 
-    rows = [json.loads(l) for l in heldout.read_text(encoding="utf-8").splitlines() if l.strip()]
+    rows = [
+        json.loads(line)
+        for line in heldout.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     options = sorted({r["labels"]["event_type"] for r in rows})
     crit = {o: "" for o in options}
     q = {"t": "choice", "ins": "Classify the corporate event this filing discloses.", "crit": crit}

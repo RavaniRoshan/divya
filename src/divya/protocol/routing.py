@@ -45,10 +45,8 @@ from typing import Any
 from divya.protocol.loader import get_spec, load_protocol
 from divya.protocol.schema import DecisionSpec
 from divya.protocol.schema import Protocol as DecisionProtocol
-from divya.runtime.loop import DivyaRuntime, LoopConfig
 from divya.runtime.state import SharedState, System1Record
 from divya.system1.laya_adapter import LayaSystem1, NullSystem1
-from divya.system2.provider import HeuristicProvider
 
 #: Which questions are asked, in which pass, and when a pass resolves the case outright.
 #:
@@ -159,12 +157,9 @@ class RoutedDecider:
         state: SharedState,
     ) -> tuple[dict[str, Any], System1Record | None, float]:
         t0 = time.perf_counter()
-        runtime = DivyaRuntime(
-            protocol=self.protocol,
-            system2=HeuristicProvider() if self.mode == "loop" else None,
-            system1=self.system1,
-            config=LoopConfig(system1_only=self.mode != "loop", max_turns=3),
-        )
+        # The engine is called directly rather than through DivyaRuntime: routing needs
+        # per-stage control over WHICH questions are asked, and a runtime constructed here
+        # would be discarded unused on every stage.
         obs = state.observation_text()
         import hashlib
 

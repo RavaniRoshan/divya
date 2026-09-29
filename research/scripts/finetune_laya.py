@@ -10,18 +10,18 @@ against proper scoring rules. The calibrated probability *is* the product — a 
 abstains on `min_confidence` needs a trustworthy probability, and a softmax trained with
 cross-entropy is not that. The reference loss is reproduced faithfully below.
 
-**What is adapted, and why.** The reference runs 2× T4 with DDP. This box has one 4 GB card (or
+**What is adapted, and why.** The reference runs 2x T4 with DDP. This box has one 4 GB card (or
 none), so:
 
 | reference | here | why |
 |---|---|---|
-| 2× T4, DDP | single process, gradient accumulation | one GPU |
+| 2x T4, DDP | single process, gradient accumulation | one GPU |
 | fp32 AdamW, batch 8 | bf16 autocast, micro-batch 2, accum 16 | 4 GB card cannot hold fp32 AdamW state for 421M params |
 | `--nproc_per_node=2` | `--device` auto/cuda/cpu | — |
 | separate temperature fit after training | same, held-out calibration slice | the reference already holds calibration items out of training, and the comment there is worth keeping: a temperature fitted on items the run has trained on measures the fit, not the calibration |
 
 **Honesty about what this may or may not achieve.** The reference reaches 0.766 on its own
-benchmark with 2× T4. The pre-committed bar for this project is **0.65 macro-F1 on 120
+benchmark with 2x T4. The pre-committed bar for this project is **0.65 macro-F1 on 120
 held-out NSE announcements** (`docs/loop/STOP_RULE.md`). This script exists to give that number
 an honest chance, not to assume it.
 
@@ -81,7 +81,7 @@ def rlcd_loss(
 
     k = mask.sum(-1, keepdim=True).float()
 
-    eps = torch.randn((group_size,) + tuple(logits.shape), device=logits.device) * sigma * mask
+    eps = torch.randn((group_size, *tuple(logits.shape)), device=logits.device) * sigma * mask
     eps = (eps - eps.sum(-1, keepdim=True) / k) * mask
     z = logits.detach().unsqueeze(0) + eps
     q = torch.softmax(z.masked_fill(~mask, -1e4), -1)
@@ -133,8 +133,6 @@ def fit_temperature(torch: Any, model: Any, tok: Any, items: list[dict[str, Any]
     """
     if len(items) < 10:
         return 1.0
-    kmax = max(len(z) for z, _ in [(it["target"], it["maskers_len"]) if False else
-                                   (it["target"], it["target"]) for it in items])
     with torch.no_grad():
         z_list, t_list = [], []
         for it in items:
@@ -146,10 +144,11 @@ def fit_temperature(torch: Any, model: Any, tok: Any, items: list[dict[str, Any]
             m = b["marker_mask"].to(device)
             z_list.append(logits.float()[m])
             t_list.append(b["target"].to(device)[m])
+    # Pad every item's option scores to the widest one, or the softmax mixes items.
     L = max(z.shape[0] for z in z_list)
     Z = torch.full((len(z_list), L), -1e4, device=device)
     T = torch.zeros((len(z_list), L), device=device)
-    for i, (z, t) in enumerate(zip(z_list, t_list, strict=True)):
+    for i, (z, t) in enumerate(zip(z_list, t_list, strict=True), start=0):
         Z[i, : z.shape[0]] = z
         T[i, : t.shape[0]] = t
     log_t = torch.zeros(1, device=device, requires_grad=True)
@@ -226,7 +225,11 @@ def make_items(
 def assert_no_heldout(ids: set[str], heldout: Path) -> None:
     if not heldout.exists():
         return
-    banned = {json.loads(l)["id"] for l in heldout.read_text(encoding="utf-8").splitlines() if l.strip()}
+    banned = {
+        json.loads(line)["id"]
+        for line in heldout.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    }
     hit = banned & ids
     if hit:
         raise SystemExit(
@@ -341,7 +344,11 @@ def main(argv: list[str] | None = None) -> int:
             f"{corpus} not found. Build it first:\n"
             f"  PYTHONPATH=src .venv/bin/python research/scripts/build_finetune_corpus.py"
         )
-    rows = [json.loads(l) for l in corpus.read_text(encoding="utf-8").splitlines() if l.strip()]
+    rows = [
+        json.loads(line)
+        for line in corpus.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     train_rows = [r for r in rows if r["split"] == "train"]
     dev_rows = [r for r in rows if r["split"] == "dev"]
     assert_no_heldout({r["id"] for r in rows}, Path(args.heldout))
@@ -455,7 +462,7 @@ def main(argv: list[str] | None = None) -> int:
             b = collate(torch, chunk, tok.pad_token_id)
             try:
                 with torch.autocast("cuda", dtype=torch.float16, enabled=(device == "cuda")):
-                    logits, act = model(
+                    logits, _act = model(
                         b["input_ids"].to(device), b["attention_mask"].to(device),
                         b["marker_pos"].to(device), b["marker_mask"].to(device),
                         b["qtype"].to(device),
