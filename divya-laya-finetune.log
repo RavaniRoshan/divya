@@ -1,42 +1,42 @@
-[{"stream_name":"stderr","time":11.724852993,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
-,{"stream_name":"stderr","time":11.724937613,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
-,{"stream_name":"stderr","time":11.724943053,"data":"0.00s - to python to disable frozen modules.\n"}
-,{"stream_name":"stderr","time":11.724946413,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
-,{"stream_name":"stderr","time":12.549036496,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
-,{"stream_name":"stderr","time":12.549072393,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
-,{"stream_name":"stderr","time":12.549078219,"data":"0.00s - to python to disable frozen modules.\n"}
-,{"stream_name":"stderr","time":12.549082396,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
-,{"stream_name":"stdout","time":21.682235964,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 43.1/43.1 MB 40.9 MB/s eta 0:00:00\r\n"}
-,{"stream_name":"stdout","time":31.520724926,"data":"torch 2.10.0+cu128 | cuda True\n"}
-,{"stream_name":"stdout","time":31.520766732,"data":"  gpu0: Tesla T4 14.6 GB\n"}
-,{"stream_name":"stdout","time":31.520774947,"data":"  gpu1: Tesla T4 14.6 GB\n"}
-,{"stream_name":"stdout","time":31.520780399,"data":"DEVICE = cuda\n"}
-,{"stream_name":"stderr","time":35.104367514,"data":"Traceback (most recent call last):\n"}
-,{"stream_name":"stderr","time":35.104420249,"data":"  File \"\u003cstring\u003e\", line 1, in \u003cmodule\u003e\n"}
-,{"stream_name":"stderr","time":35.104428674,"data":"  File \"/usr/local/lib/python3.12/dist-packages/papermill/execute.py\", line 131, in execute_notebook\n"}
-,{"stream_name":"stderr","time":35.104533255,"data":"    raise_for_execution_errors(nb, output_path)\n"}
-,{"stream_name":"stderr","time":35.104544087,"data":"  File \"/usr/local/lib/python3.12/dist-packages/papermill/execute.py\", line 251, in raise_for_execution_errors\n"}
-,{"stream_name":"stderr","time":35.104786573,"data":"    raise error\n"}
-,{"stream_name":"stderr","time":35.104877128,"data":"papermill.exceptions.PapermillExecutionError: \n"}
-,{"stream_name":"stderr","time":35.104897398,"data":"---------------------------------------------------------------------------\n"}
-,{"stream_name":"stderr","time":35.104903606,"data":"Exception encountered at \"In [2]\":\n"}
-,{"stream_name":"stderr","time":35.104908343,"data":"---------------------------------------------------------------------------\n"}
-,{"stream_name":"stderr","time":35.104913046,"data":"NameError                                 Traceback (most recent call last)\n"}
-,{"stream_name":"stderr","time":35.104918191,"data":"/tmp/ipykernel_23/2562645268.py in \u003ccell line: 0\u003e()\n"}
-,{"stream_name":"stderr","time":35.104923488,"data":"      1 base = (f'python /kaggle/working/finetune_laya.py --eval-only --limit-dev 200 '\n"}
-,{"stream_name":"stderr","time":35.104928474,"data":"      2         f'--device {DEVICE} '\n"}
-,{"stream_name":"stderr","time":35.104933905,"data":"----\u003e 3         f'--corpus {DATASET_DIR}/finetune_corpus.jsonl '\n"}
-,{"stream_name":"stderr","time":35.104938633,"data":"      4         f'--heldout {DATASET_DIR}/nse_v5_eval_set.jsonl')\n"}
-,{"stream_name":"stderr","time":35.104943384,"data":"      5 print(base)\n"}
-,{"stream_name":"stderr","time":35.104948304,"data":"\n"}
-,{"stream_name":"stderr","time":35.104952399,"data":"NameError: name 'DATASET_DIR' is not defined\n"}
-,{"stream_name":"stderr","time":35.104966896,"data":"\n"}
-,{"stream_name":"stderr","time":37.489585261,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
-,{"stream_name":"stderr","time":37.489658321,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
-,{"stream_name":"stderr","time":37.688713274,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
-,{"stream_name":"stderr","time":37.688764128,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
-,{"stream_name":"stderr","time":38.375365367,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
-,{"stream_name":"stderr","time":38.698218754,"data":"[NbConvertApp] Writing 14542 bytes to __notebook__.ipynb\n"}
-,{"stream_name":"stderr","time":41.204301705,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
-,{"stream_name":"stderr","time":42.077758785,"data":"[NbConvertApp] Writing 308116 bytes to __results__.html\n"}
+[{"stream_name":"stderr","time":7.920296892,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":7.921290098,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":7.921296885,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":7.921301555,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":8.571004435999999,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":8.571034814,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":8.571039313,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":8.571042913,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":16.360019343,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 43.1/43.1 MB 45.7 MB/s eta 0:00:00\r\n"}
+,{"stream_name":"stdout","time":22.064572857,"data":"torch 2.10.0+cu128 | cuda True\n"}
+,{"stream_name":"stdout","time":22.064614606,"data":"  gpu0: Tesla T4 14.6 GB\n"}
+,{"stream_name":"stdout","time":22.064626034,"data":"  gpu1: Tesla T4 14.6 GB\n"}
+,{"stream_name":"stdout","time":22.064629483,"data":"DEVICE = cuda\n"}
+,{"stream_name":"stderr","time":25.147284523,"data":"Traceback (most recent call last):\n"}
+,{"stream_name":"stderr","time":25.147312393,"data":"  File \"\u003cstring\u003e\", line 1, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":25.147318796,"data":"  File \"/usr/local/lib/python3.12/dist-packages/papermill/execute.py\", line 131, in execute_notebook\n"}
+,{"stream_name":"stderr","time":25.147451304,"data":"    raise_for_execution_errors(nb, output_path)\n"}
+,{"stream_name":"stderr","time":25.147473872,"data":"  File \"/usr/local/lib/python3.12/dist-packages/papermill/execute.py\", line 251, in raise_for_execution_errors\n"}
+,{"stream_name":"stderr","time":25.147679859,"data":"    raise error\n"}
+,{"stream_name":"stderr","time":25.147692753,"data":"papermill.exceptions.PapermillExecutionError: \n"}
+,{"stream_name":"stderr","time":25.147697617,"data":"---------------------------------------------------------------------------\n"}
+,{"stream_name":"stderr","time":25.147702193,"data":"Exception encountered at \"In [2]\":\n"}
+,{"stream_name":"stderr","time":25.14770677,"data":"---------------------------------------------------------------------------\n"}
+,{"stream_name":"stderr","time":25.147711063,"data":"NameError                                 Traceback (most recent call last)\n"}
+,{"stream_name":"stderr","time":25.147715318,"data":"/tmp/ipykernel_23/2562645268.py in \u003ccell line: 0\u003e()\n"}
+,{"stream_name":"stderr","time":25.147720363,"data":"      1 base = (f'python /kaggle/working/finetune_laya.py --eval-only --limit-dev 200 '\n"}
+,{"stream_name":"stderr","time":25.147724448,"data":"      2         f'--device {DEVICE} '\n"}
+,{"stream_name":"stderr","time":25.147728767,"data":"----\u003e 3         f'--corpus {DATASET_DIR}/finetune_corpus.jsonl '\n"}
+,{"stream_name":"stderr","time":25.14773293,"data":"      4         f'--heldout {DATASET_DIR}/nse_v5_eval_set.jsonl')\n"}
+,{"stream_name":"stderr","time":25.147737521,"data":"      5 print(base)\n"}
+,{"stream_name":"stderr","time":25.147741519,"data":"\n"}
+,{"stream_name":"stderr","time":25.147745593,"data":"NameError: name 'DATASET_DIR' is not defined\n"}
+,{"stream_name":"stderr","time":25.147770426,"data":"\n"}
+,{"stream_name":"stderr","time":27.253711787,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":27.253744163,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":27.413577973,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":27.41361539,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":28.023368306,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
+,{"stream_name":"stderr","time":28.324599151,"data":"[NbConvertApp] Writing 14543 bytes to __notebook__.ipynb\n"}
+,{"stream_name":"stderr","time":30.661251712,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
+,{"stream_name":"stderr","time":31.518366421,"data":"[NbConvertApp] Writing 308116 bytes to __results__.html\n"}
 ]
