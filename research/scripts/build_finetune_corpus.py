@@ -27,8 +27,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from divya.data.nse import NseAnnouncements  # noqa: E402
-from divya.data.nse_taxonomy import UNRESOLVED, classify  # noqa: E402
+from divya.data.nse import NseAnnouncements
+from divya.data.nse_taxonomy import UNRESOLVED, classify
 
 HELDOUT = Path("evals/datasets/nse_v5_eval_set.jsonl")
 
@@ -69,7 +69,7 @@ def main() -> int:
         start, stop = month_window(end, back)
         try:
             anns, truncated = src.fetch(start, stop, limit=6000)
-        except Exception as exc:  # noqa: BLE001 - one bad month must not lose the rest
+        except Exception as exc:
             print(f"  {start}..{stop}: FAILED {type(exc).__name__}: {exc}", file=sys.stderr)
             continue
         added = 0

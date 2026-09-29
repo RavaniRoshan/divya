@@ -33,7 +33,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import random
 import sys
 import time
@@ -205,7 +204,7 @@ def make_items(
     for r in rows:
         try:
             seq, markers = build_sequence(tok, r["text"], q, max_len, head_max_len)
-        except Exception as exc:  # noqa: BLE001 - one bad row must not lose the corpus
+        except Exception as exc:
             dropped_err += 1
             if dropped_err <= 3:
                 print(f"  skipping {r['id']}: {type(exc).__name__}: {exc}", file=sys.stderr)
@@ -264,9 +263,7 @@ def evaluate(torch: Any, model: Any, tok: Any, rows: list[dict[str, Any]],
              options: list[str], device: str, max_len: int, head_max_len: int,
              limit: int | None = None) -> dict[str, Any]:
     """Greedy accuracy and macro-F1 through the model itself, not through the Router."""
-    from laya.common import build_sequence, render_options
-
-    from laya.common import QTYPES, render_options
+    from laya.common import QTYPES, build_sequence, render_options
 
     crit = {o: "" for o in options}
     q = {"t": "choice", "ins": "Classify the corporate event this filing discloses.", "crit": crit}
@@ -278,7 +275,7 @@ def evaluate(torch: Any, model: Any, tok: Any, rows: list[dict[str, Any]],
         for r in use:
             try:
                 seq, markers = build_sequence(tok, r["text"], q, max_len, head_max_len)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 continue
             if len(markers) != k:
                 continue
@@ -429,7 +426,7 @@ def main(argv: list[str] | None = None) -> int:
              {"params": head, "lr": 1.0e-4}], weight_decay=0.01,
         )
         optname = "adamw8bit"
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"  8-bit AdamW unavailable ({type(exc).__name__}); using fp32 AdamW")
         opt = torch.optim.AdamW(
             [{"params": enc, "lr": 2.5e-5}, {"params": head, "lr": 1.0e-4}], weight_decay=0.01

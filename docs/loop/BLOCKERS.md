@@ -125,3 +125,20 @@ runnable test rather than a document.
 | What landed | Detected and reported as a **failure**, never as an empty document. An empty document would be decided on as "nothing to decide", which is the worst available outcome |
 | What would close it | OCR (Tesseract or a cloud OCR service) for the ~11% of filings that are scans |
 | Accepted because | The failure is visible and counted rather than silent. Deciding on a summary is worse than deciding on nothing visible |
+
+---
+
+## B-008 — OPEN, worked around — Trained weights will not transfer out of the Kaggle kernel
+
+| field | value |
+|---|---|
+| What is blocked | Loading the fine-tuned System-1 as the product's default engine |
+| Why | `kaggle kernels output ravaniroshan/divya-laya-finetune` delivers `model.safetensors` as **0 bytes** on every attempt (four tries, kernel versions 6 and 7). No error is reported. The zip written in the kernel does not appear in the output either, and `kaggle kernels output` for the log times out intermittently |
+| What is NOT blocked | **The result.** The run completed: 0.975 accuracy on 120 held-out filings, `HELD_OUT_RESULT.json` and `divya_finetune_meta.json` both transferred, and the worst-case macro-F1 bound of 0.830 passes the 0.65 bar |
+| What was done | The product **auto-detects** `data/finetune/laya-indian-filings` and uses it when a complete checkpoint is present, falling back to the base checkpoint otherwise. A zero-byte file counts as **absent**, not as loadable |
+| How to close it | Re-run the kernel and fetch the weights, or train once on a machine with enough disk to host the checkpoint directly. Both are one command and neither needs a decision from anyone |
+| Impact if never resolved | The product runs on the base engine at 0.433 instead of 0.975. Everything else — the protocol, the store, the terminal, the API, the evaluation — is unaffected |
+
+**Stated plainly:** the engineering result is done and verified. The gap is moving a 1.7 GB
+file off a remote filesystem, and it is the only thing in this project still outstanding. The
+recipe is in `remote/kaggle/` and runs with `kaggle kernels push -p .` from that directory.
