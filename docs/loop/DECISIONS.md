@@ -1027,3 +1027,62 @@ losing `capital_action`, the honest conclusion is that **Laya cannot separate th
 filing text at all**, and the right response is to merge them into one class the engine can
 support rather than ship a taxonomy it cannot execute. A taxonomy that silently mislabels its
 own events is worse than a coarser one that does not.
+
+---
+
+## D-026 — 2026-09-28 — The merge did not help: the 0.558 headline was partly a class-granularity artifact
+
+**DECISION.** Report this as a correction to the project's own headline number. Default the
+protocol to **v5** (the taxonomy the engine can partly execute) rather than v2, and state that
+the honest number is lower.
+
+**RESULT — same 120 real announcements, same predictions, only the taxonomy differs.**
+
+| arm | accuracy v2 → v5 | macro-F1 v2 → v5 | ECE v2 → v5 | AURC v2 → v5 |
+|---|---|---|---|---|
+| A System-1 alone | 0.558 → **0.433** | 0.436 → 0.434 | 0.096 → 0.163 | 0.240 → 0.380 |
+| C System-2 → System-1 | 0.558 → 0.433 | 0.436 → 0.433 | 0.096 → 0.176 | 0.240 → 0.380 |
+| D recurrent | 0.508 → 0.433 | 0.371 → 0.433 | 0.080 → 0.171 | 0.260 → 0.378 |
+
+**v5 per-class (arm A):**
+
+| class | n | P | R | F1 |
+|---|---|---|---|---|
+| credit_rating | 8 | 1.00 | 1.00 | **1.00** |
+| auditor_change | 2 | 0.50 | 1.00 | 0.67 |
+| leadership_change | 43 | 1.00 | 0.70 | 0.82 |
+| **capital_event** | 28 | 0.41 | **0.25** | **0.31** |
+| earnings_result | 4 | 0.07 | 1.00 | 0.13 |
+| regulatory_action | 17 | 0.50 | 0.06 | 0.11 |
+| other | 18 | 0.00 | 0.00 | **0.00** |
+
+**WHAT THIS ACTUALLY SHOWS.**
+
+1. **Macro-F1 is unchanged: 0.436 → 0.434.** The taxonomy change neither helped nor hurt the
+   engine's discrimination. It only moved *which label* carries the error.
+2. **Accuracy fell 12.5 points for the same reason and no other.** A nine-class taxonomy gives
+   the engine more chances to be accidentally right — `m_and_a` and `capital_action` were
+   separate targets, and predicting either one sometimes scored. Merging them removed those
+   cheap successes. **The 0.558 that anchors this project's README, STATUS and EVALS was
+   partly a measurement artifact of class granularity, and the more honest number is 0.433.**
+3. **The merged class is still hard.** `capital_event` recall is **0.25** on 28 items — the
+   engine cannot reliably recognise the union either, it just spreads its errors across three
+   names instead of one.
+4. **The recurrent loop stopped hurting.** All three arms land on 0.433. Whatever the loop was
+   breaking, the merge removed the distinctions it was breaking them *across*. This is not the
+   loop becoming useful — it is the loop's damage disappearing along with the distinctions that
+   gave it room to do damage. **It must not be read as a vindication of the loop.**
+
+**WHY SHIP v5 ANYWAY, AT A LOWER NUMBER.** v5 asserts three distinctions the engine was
+measured to get wrong (v2's `m_and_a` F1 0.07, `fundraise` 0.00, `capital_action` a 0.00-0.62
+range depending on which other classes existed). v5 asserts one. A terminal that mislabels 75%
+of its own events is worse than a coarser taxonomy it can execute, **even though the coarser one
+scores lower** — because the lower number is the honest one and the v2 number was flattering.
+
+**WHAT WOULD ACTUALLY MOVE THE NUMBER.** Not taxonomy surgery. The engine is at ~0.43 macro-F1
+on real Indian filings and the per-class pattern says why: it is excellent on
+`credit_rating` (1.00) and `leadership_change` (0.82) and poor everywhere the answer requires
+reading a document rather than a headline. The single most promising lever remains the one
+already identified: **full filing text**, which moved `capital_action` 0.00 → 0.39 and
+`earnings_result` 0.33 → 0.80 when the same engine finally saw the document. That is worth far
+more than another version of questions.yaml.
